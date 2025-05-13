@@ -1,7 +1,7 @@
 {
   "name": "reflected-ffi",
   "type": "module",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "A remotely reflected Foreign Function Interface",
   "license": "MIT",
   "author": "Andrea Giammarchi",
@@ -38,7 +38,12 @@
     "type": "git",
     "url": "git+https://github.com/WebReflection/reflected-ffi.git"
   },
-  "keywords": ["remote", "ffi", "Reflect", "Proxy"],
+  "keywords": [
+    "remote",
+    "ffi",
+    "Reflect",
+    "Proxy"
+  ],
   "bugs": {
     "url": "https://github.com/WebReflection/reflected-ffi/issues"
   },
