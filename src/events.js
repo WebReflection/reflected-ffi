@@ -1,0 +1,28 @@
+const { addEventListener } = EventTarget.prototype;
+const eventsHandler = new WeakMap;
+Reflect.defineProperty(EventTarget.prototype, 'addEventListener', {
+  value(type, listener, ...options) {
+    const invoke = options.at(0)?.invoke;
+    if (invoke) {
+      let map = eventsHandler.get(this);
+      if (!map) {
+        map = new Map;
+        eventsHandler.set(this, map);
+      }
+      map.set(type, [].concat(invoke));
+      delete options[0].invoke;
+    }
+    return addEventListener.call(this, type, listener, ...options);
+  },
+});
+
+/**
+ * This utility is used to perform `preventDefault` or `stopPropagation`
+ * on events that are triggered via functions defined on the remote side.
+ * @param {Event} event
+ */
+export default event => {
+  const { currentTarget, target, type } = event;
+  const methods = eventsHandler.get(currentTarget || target)?.get(type);
+  if (methods) for (const method of methods) event[method]();
+};

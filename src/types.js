@@ -1,0 +1,10 @@
+export const DIRECT    = 0;
+export const OBJECT    = 1 << 0;
+export const ARRAY     = 1 << 1;
+export const FUNCTION  = 1 << 2;
+export const SYMBOL    = 1 << 3;
+export const REMOTE    = 1 << 7;
+
+export const REMOTE_OBJECT   = REMOTE | OBJECT;
+export const REMOTE_ARRAY    = REMOTE | ARRAY;
+export const REMOTE_FUNCTION = REMOTE | FUNCTION;

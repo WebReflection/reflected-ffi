@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script type="module">
+    import nextResolver from 'https://esm.run/next-resolver';
+    import local from './src/local.js';
+
+    const [next, resolve] = nextResolver();
+
+    const waiting = new Map;
+    const w = new Worker('./worker.js', { type: 'module' });
+    const { direct, reflect } = local({
+      reflect: (...args) => {
+        const [id, promise] = next();
+        w.postMessage([id, args]);
+        return promise;
+      }
+    });
+
+    w.onmessage = ({ target, data: [i32a, args] }) => {
+      if (typeof i32a === 'number')
+        resolve(i32a, args);
+      else {
+        const result = reflect(...args);
+        if (args[0] !== 'unref') {
+          const json = JSON.stringify(result);
+          const { length } = json;
+          const ui16a = new Uint16Array(i32a.buffer, 4, length);
+          for (let i = 0; i < length; i++) ui16a[i] = json.charCodeAt(i);
+          i32a[0] = length;
+          Atomics.notify(i32a, 0);
+        }
+      }
+    };
+
+    setTimeout(async () => {
+      console.log('shenanigans', await shenanigans());
+    }, 1000);
+  </script>
+</head>
+</html>
