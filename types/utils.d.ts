@@ -1,8 +1,13 @@
 export const isArray: (arg: any) => arg is any[];
-export function _$(_: any, $: any): any[];
+export const isView: (arg: any) => arg is ArrayBufferView;
+export function _$(type: number, value: any): TypeValue;
 export function identity(value: any): any;
-export function loopValues(asValue: any): ($: any, cache?: Map<any, any>) => any;
-export function fromKey([_, $]: [any, any]): any;
-export function toKey(prop: any): any[];
-export function fromSymbol(name: any): any;
-export function toSymbol(value: any): string;
+export function loopValues(asValue: (value: any, cache?: Map<any, any>) => any): (arr: any[], cache?: Map<any, any>) => any[];
+export function fromKey([type, value]: TypeValue): string | symbol;
+export function toKey(value: string | symbol): TypeValue;
+export function fromSymbol(name: string): symbol;
+export function toSymbol(value: symbol): string;
+/**
+ * A type/value pair.
+ */
+export type TypeValue = [number, any];

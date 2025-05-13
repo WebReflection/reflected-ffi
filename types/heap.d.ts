@@ -1,10 +1,31 @@
-export function heap($?: number, ids?: Map<any, any>, refs?: Map<any, any>): {
-    ref: (id: any) => any;
-    id: (ref: any) => any;
-    unref: (id: any) => boolean;
+declare function _default(id?: number, ids?: Map<number, any>, refs?: Map<any, number>): {
+    /**
+     * Clear the heap.
+     */
+    clear: () => void;
+    /**
+     * Get the id of a reference.
+     * @param {any} ref
+     * @returns {number}
+     */
+    id: (ref: any) => number;
+    /**
+     * Get the reference of an id.
+     * @param {number} id
+     * @returns {any}
+     */
+    ref: (id: number) => any;
+    /**
+     * Unref an id.
+     * @param {number} id
+     * @returns {boolean}
+     */
+    unref: (id: number) => boolean;
 };
-export namespace shared {
-    function ref(id: any): any;
-    function id(ref: any): any;
-    function unref(id: any): boolean;
-}
+export default _default;
+export type Heap<T> = {
+    clear: () => void;
+    id: (ref: T) => number;
+    ref: (id: number) => T;
+    unref: (id: number) => boolean;
+};

@@ -11,7 +11,13 @@ declare function _default({ reflect, transform, }?: RemoteOptions): {
      * @param {T} value
      * @returns {T}
      */
-    direct<T extends WeakKey>(value: T): T;
+    direct: <T extends WeakKey>(value: T) => T;
+    /**
+     * Checks if the given value is a proxy created in the remote side.
+     * @param {any} value
+     * @returns {boolean}
+     */
+    isProxy: (value: any) => boolean;
     /**
      * The callback needed to resolve any local call. Currently only `apply` and `unref` are supported.
      * Its returned value will be understood by the remote implementation

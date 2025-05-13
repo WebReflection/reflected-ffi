@@ -16,7 +16,12 @@ declare function _default({ reflect, transform, remote, module, }?: LocalOptions
      * @param  {...any} args
      * @returns
      */
-    reflect: (method: string, uid: number | null, ...args: any[]) => any;
+    reflect: (method: string, uid: number | null, ...args: any[]) => boolean | any[] | TypedPropertyDescriptor<any>;
+    /**
+     * Terminates the local side of the communication,
+     * erasing and unregistering all the cached references.
+     */
+    terminate(): void;
 };
 export default _default;
 /**

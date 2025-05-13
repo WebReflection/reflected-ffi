@@ -11,18 +11,19 @@ import {
   REMOTE_FUNCTION,
 } from './types.js';
 
-import { heap } from './heap.js';
-
 import {
   isArray,
+  isView,
   fromKey,
   fromSymbol,
   toKey,
   toSymbol,
   identity,
   loopValues,
-  _$
+  _$,
 } from './utils.js';
+
+import heap from './heap.js';
 
 /**
  * @typedef {Object} LocalOptions Optional utilities used to orchestrate local <-> remote communication.
@@ -87,13 +88,12 @@ export default ({
   const toValue = value => {
     switch (typeof value) {
       case 'object': {
-        if (value === null) return _$(DIRECT, value);
+        if (value === null || isView(value)) return _$(DIRECT, value);
         if (value === globalThis) return globalTarget;
         const $ = transform(value);
-        return (indirect || !directValue.has($)) ?
+        return (indirect || !direct.has($)) ?
           // anything that is not an Array is held as remote object
-          // **including** views and anything else that was not
-          // explicitly marked as direct
+          // unless explicitly marked as direct
           _$(isArray(value) ? REMOTE_ARRAY : REMOTE_OBJECT, id(value)) :
           _$(DIRECT, $)
         ;
@@ -104,18 +104,15 @@ export default ({
     return _$(DIRECT, value);
   };
 
+  let indirect = true, direct;
+
+  const { clear, id, ref, unref } = heap();
+  const weakRefs = new Map;
+  const globalTarget = _$(OBJECT, null);
   const fr = new FinalizationRegistry($ => {
     weakRefs.delete($);
     reflect('unref', $);
   });
-
-  let indirect = true;
-
-  const weakRefs = new Map;
-  const directValue = new WeakSet;
-  const globalTarget = _$(OBJECT, null);
-
-  const { id, ref, unref } = heap();
 
   const {
     apply,
@@ -140,8 +137,11 @@ export default ({
      * @returns {T}
      */
     direct(value) {
-      if (indirect) indirect = false;
-      directValue.add(value);
+      if (indirect) {
+        indirect = false;
+        direct = new WeakSet;
+      }
+      direct.add(value);
       return value;
     },
 
@@ -215,6 +215,16 @@ export default ({
           return unref(uid);
         }
       }
-    }
+    },
+
+    /**
+     * Terminates the local side of the communication,
+     * erasing and unregistering all the cached references.
+     */
+    terminate() {
+      for (const wr of weakRefs.values()) fr.unregister(wr);
+      weakRefs.clear();
+      clear();
+    },
   };
 };

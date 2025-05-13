@@ -10,25 +10,21 @@ import {
   REMOTE_ARRAY,
 } from './types.js';
 
-import { heap } from './heap.js';
-
 import {
   isArray,
+  isView,
   fromKey,
   fromSymbol,
   toKey,
   toSymbol,
   identity,
   loopValues,
-  _$
+  _$,
 } from './utils.js';
 
-function asFunction() {
-  return this;
-}
+import heap from './heap.js';
 
 const { keys, preventExtensions } = Object;
-const { isView } = ArrayBuffer;
 const { apply } = Reflect;
 
 /**
@@ -83,7 +79,7 @@ export default ({
         let cached = cache.get(value);
         if (!cached) {
           const $ = transform(value);
-          if (indirect || !directValue.has($)) {
+          if (indirect || !direct.has($)) {
             if (isArray($)) {
               const a = [];
               cached = _$(ARRAY, a);
@@ -99,9 +95,9 @@ export default ({
               const o = {};
               cached = _$(OBJECT, o);
               cache.set(value, cached);
-              for (let prop, i = 0; i < length; i++) {
-                prop = props[i];
-                o[prop] = toValue($[prop], cache);
+              for (let k, i = 0; i < length; i++) {
+                k = props[i];
+                o[k] = toValue($[k], cache);
               }
               return cached;
             }
@@ -248,21 +244,17 @@ export default ({
     }
   }
 
+  let indirect = true, direct, reference;
+
+  const { id, ref, unref } = heap();
+  const weakRefs = new Map;
+  const remote = Symbol('remote');
+  const globalTarget = _$(OBJECT, null);
+  const global = new ObjectHandler(globalTarget, null);
   const fr = new FinalizationRegistry($ => {
     weakRefs.delete($);
     reflect('unref', $);
   });
-
-  let reference;
-  let indirect = true;
-
-  const weakRefs = new Map;
-  const remote = Symbol('remote');
-  const directValue = new WeakSet;
-  const globalTarget = _$(OBJECT, null);
-  const global = new ObjectHandler(globalTarget, null);
-
-  const { id, ref, unref } = heap();
 
   return {
     /**
@@ -278,11 +270,25 @@ export default ({
      * @param {T} value
      * @returns {T}
      */
-    direct(value) {
-      if (indirect) indirect = false;
-      directValue.add(value);
+    direct: value => {
+      if (indirect) {
+        indirect = false;
+        direct = new WeakSet;
+      }
+      direct.add(value);
       return value;
     },
+
+    /**
+     * Checks if the given value is a proxy created in the remote side.
+     * @param {any} value
+     * @returns {boolean}
+     */
+    isProxy: value => (
+      value !== null &&
+      typeof value === 'object' &&
+      remote in value
+    ),
 
     /**
      * The callback needed to resolve any local call. Currently only `apply` and `unref` are supported.
@@ -302,6 +308,10 @@ export default ({
           return toValue(apply(ref(uid), fromValue(args[0], map), fromValues(args[1], map)));
         }
       }
-    }
+    },
   };
 };
+
+function asFunction() {
+  return this;
+}

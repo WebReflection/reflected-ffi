@@ -1,7 +1,7 @@
 {
   "name": "reflected-ffi",
   "type": "module",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "A remotely reflected Foreign Function Interface",
   "license": "MIT",
   "author": "Andrea Giammarchi",
@@ -12,22 +12,34 @@
     "README.md"
   ],
   "exports": {
-    "./remote": {
-      "types": "./types/remote.d.ts",
-      "import": "./src/remote.js"
+    "./events": {
+      "types": "./types/events.d.ts",
+      "import": "./src/events.js"
+    },
+    "./heap": {
+      "types": "./types/heap.d.ts",
+      "import": "./src/heap.js"
     },
     "./local": {
       "types": "./types/local.d.ts",
       "import": "./src/local.js"
     },
-    "./events": {
-      "types": "./types/events.d.ts",
-      "import": "./src/events.js"
+    "./remote": {
+      "types": "./types/remote.d.ts",
+      "import": "./src/remote.js"
+    },
+    "./types": {
+      "types": "./types/types.d.ts",
+      "import": "./src/types.js"
+    },
+    "./utils": {
+      "types": "./types/utils.d.ts",
+      "import": "./src/utils.js"
     },
     "./package.json": "./package.json"
   },
   "scripts": {
-    "test": "c8 node test/index.js",
+    "test": "c8 node --expose-gc test/index.js",
     "types": "tsc --allowJs --checkJs --lib dom,esnext --module esnext --target esnext -d --emitDeclarationOnly --outDir ./types ./src/*.js"
   },
   "devDependencies": {
@@ -38,7 +50,12 @@
     "type": "git",
     "url": "git+https://github.com/WebReflection/reflected-ffi.git"
   },
-  "keywords": ["remote", "ffi", "Reflect", "Proxy"],
+  "keywords": [
+    "remote",
+    "ffi",
+    "Reflect",
+    "Proxy"
+  ],
   "bugs": {
     "url": "https://github.com/WebReflection/reflected-ffi/issues"
   },

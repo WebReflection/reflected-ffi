@@ -19,7 +19,7 @@ console.assert(new global.Array instanceof global.Array);
 for (const _ of new global.Array(1, 2, 3));
 
 console.assert(global.Symbol.iterator in global.Array.prototype);
-console.assert(!(global.Symbol.for('iterator') in global.Array.prototype));
+console.assert(!(Symbol.for('iterator') in global.Array.prototype));
 console.assert(global.Object({}) instanceof global.Object);
 console.assert(new global.Date instanceof global.Date);
 console.assert(global.Object.getPrototypeOf(new global.Date) === global.Date.prototype);
@@ -60,9 +60,9 @@ fn(here.direct([arr, arr]));
 obj = null;
 try {
   setTimeout(gc);
-  setTimeout(console.log, 250, 'done');
+  setTimeout(console.log, 250, 'done with gc');
 } catch (e) {
-  setTimeout(console.log, 250, 'done');
+  setTimeout(console.log, 250, 'done without gc');
 }
 
-
+setTimeout(here.terminate, 500);

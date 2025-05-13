@@ -25,10 +25,10 @@ const obj = { a: 123 };
 // debugger;
 log(obj, [456], obj, Symbol.iterator, Symbol.for('iterator'), new Uint8Array(2));
 
-global.document.body.textContent = 'click me';
-global.document.body.onclick = event => {
-  console.log(event.type);
-  123;
+const { body } = global.document;
+body.textContent = 'click me';
+body.onclick = event => {
+  body.append(' ', event.type);
 };
 
 global.shenanigans = () => 456;
