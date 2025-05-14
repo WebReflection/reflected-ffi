@@ -5,6 +5,9 @@ import {
   FUNCTION,
   REMOTE,
   SYMBOL,
+  BIGINT,
+  VIEW,
+  UNDEFINED,
 
   REMOTE_OBJECT,
   REMOTE_ARRAY,
@@ -43,27 +46,26 @@ export default ({
 } = {}) => {
   const fromKeys = loopValues(fromKey);
 
-  const fromValue = (_$, cache = new Map) => {
+  const fromValue = _$ => {
     const [_, $] = _$;
     switch (_) {
       case OBJECT: {
         if ($ === null) return global;
-        let cached = cache.get(_$);
-        if (!cached) {
-          cached = $;
-          cache.set(_$, $);
-          for (const k in $) $[k] = fromValue($[k], cache);
-        }
-        return cached;
+        for (const k in $) $[k] = fromValue($[k]);
+        return $;
       }
       case ARRAY: {
-        return cache.get(_$) || (
-          cache.set(_$, $),
-          fromValues($, cache)
-        );
+        return fromValues($, weakRefs);
+      }
+      case VIEW: {
+        const [name, bytes] = $;
+        const { buffer } = new Uint8Array(bytes);
+        return new globalThis[name](buffer);
       }
       case FUNCTION: return ref($);
       case SYMBOL: return fromSymbol($);
+      case BIGINT: return BigInt($);
+      case UNDEFINED: return void 0;
     }
     return (_ & REMOTE) ? asProxy(_$, _, $) : $;
   };
@@ -153,11 +155,10 @@ export default ({
     getOwnPropertyDescriptor(_, key) {
       const descriptor = reflect('getOwnPropertyDescriptor', this.$, toKey(key));
       if (descriptor) {
-        const map = new Map;
         const { get, set, value } = descriptor;
-        if (get) descriptor.get = fromValue(get, map);
-        if (set) descriptor.set = fromValue(set, map);
-        if (value) descriptor.value = fromValue(value, map);
+        if (get) descriptor.get = fromValue(get);
+        if (set) descriptor.set = fromValue(set);
+        if (value) descriptor.value = fromValue(value);
       }
       return descriptor;
     }
@@ -304,8 +305,7 @@ export default ({
         case 'unref':
           return unref(uid);
         case 'apply': {
-          const map = new Map;
-          return toValue(apply(ref(uid), fromValue(args[0], map), fromValues(args[1], map)));
+          return toValue(apply(ref(uid), fromValue(args[0]), fromValues(args[1], weakRefs)));
         }
       }
     },

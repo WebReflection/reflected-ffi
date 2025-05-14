@@ -5,6 +5,9 @@ import {
   FUNCTION,
   REMOTE,
   SYMBOL,
+  BIGINT,
+  VIEW,
+  UNDEFINED,
 
   REMOTE_OBJECT,
   REMOTE_ARRAY,
@@ -25,6 +28,12 @@ import {
 
 import heap from './heap.js';
 
+const { getPrototypeOf } = Object;
+const { toStringTag } = Symbol;
+const toTag = (ref, name = ref[toStringTag]) =>
+  name in globalThis ? name : toTag(getPrototypeOf(ref));
+
+const toView = (name, buffer) => _$(VIEW, [name, [...new Uint8Array(buffer)]]);
 /**
  * @typedef {Object} LocalOptions Optional utilities used to orchestrate local <-> remote communication.
  * @property {Function} [reflect=identity] The function used to reflect operations via the remote receiver. Currently only `apply` and `unref` are supported.
@@ -68,7 +77,9 @@ export default ({
           if (wr) fr.unregister(wr);
           fn = function (...args) {
             remote.apply(this, args);
-            return reflect('apply', $, toValue(this), args.map(toValue)).then(fromValue);
+            for (let i = 0, len = args.length; i < len; i++)
+              args[i] = toValue(args[i]);
+            return reflect('apply', $, toValue(this), args).then(fromValue);
           };
           wr = new WeakRef(fn);
           weakRefs.set($, wr);
@@ -85,12 +96,15 @@ export default ({
 
   const toKeys = loopValues(toKey);
 
+  // values sent to the remote are JSON serializable
+  // *unless* a direct reference is not JSON serializable
   const toValue = value => {
     switch (typeof value) {
       case 'object': {
-        if (value === null || isView(value)) return _$(DIRECT, value);
+        if (value === null) return _$(DIRECT, value);
         if (value === globalThis) return globalTarget;
         const $ = transform(value);
+        if (isView($)) return toView(toTag($), $.buffer);
         return (indirect || !direct.has($)) ?
           // anything that is not an Array is held as remote object
           // unless explicitly marked as direct
@@ -100,6 +114,8 @@ export default ({
       }
       case 'function': return _$(REMOTE_FUNCTION, id(value));
       case 'symbol': return _$(SYMBOL, toSymbol(value));
+      case 'bigint': return _$(BIGINT, value.toString());
+      case 'undefined': return _$(UNDEFINED, value);
     }
     return _$(DIRECT, value);
   };
