@@ -1,13 +1,12 @@
 import {
   DIRECT,
+  REMOTE,
   OBJECT,
   ARRAY,
   FUNCTION,
-  REMOTE,
   SYMBOL,
   BIGINT,
   VIEW,
-  UNDEFINED,
 
   REMOTE_OBJECT,
   REMOTE_ARRAY,
@@ -46,31 +45,19 @@ export default ({
 } = {}) => {
   const fromKeys = loopValues(fromKey);
 
-  const fromValue = _$ => {
-    const [_, $] = _$;
-    switch (_) {
-      case OBJECT: {
-        if ($ === null) return global;
-        for (const k in $) $[k] = fromValue($[k]);
-        return $;
-      }
-      case ARRAY: {
-        return fromValues($, weakRefs);
-      }
-      case VIEW: {
-        const [name, bytes] = $;
-        const { buffer } = new Uint8Array(bytes);
-        return new globalThis[name](buffer);
-      }
-      case FUNCTION: return ref($);
-      case SYMBOL: return fromSymbol($);
-      case BIGINT: return BigInt($);
-      case UNDEFINED: return void 0;
+  const fromValue = value => {
+    if (!isArray(value)) return value;
+    const [t, v] = value;
+    if (t & REMOTE) return asProxy(value, t, v);
+    switch (t) {
+      case OBJECT: return global;
+      case SYMBOL: return fromSymbol(v);
+      case BIGINT: return BigInt(v);
+      case DIRECT: return v;
+      case VIEW: return new globalThis[v[0]](v[1]);
+      // there is no other case
     }
-    return (_ & REMOTE) ? asProxy(_$, _, $) : $;
   };
-
-  const fromValues = loopValues(fromValue);
 
   const toValue = (value, cache = new Map) => {
     switch (typeof value) {
@@ -90,18 +77,20 @@ export default ({
                 a[i] = toValue($[i], cache);
               return cached;
             }
-            // TODO: Natives don't have own keys ... or do they?
-            const props = keys($);
-            const length = props.length;
-            if (length) {
-              const o = {};
-              cached = _$(OBJECT, o);
-              cache.set(value, cached);
-              for (let k, i = 0; i < length; i++) {
-                k = props[i];
-                o[k] = toValue($[k], cache);
+            if (!isView($)) {
+              // TODO: except views, natives don't have own keys ... right?
+              const props = keys($);
+              const length = props.length;
+              if (length) {
+                const o = {};
+                cached = _$(OBJECT, o);
+                cache.set(value, cached);
+                for (let k, i = 0; i < length; i++) {
+                  k = props[i];
+                  o[k] = toValue($[k], cache);
+                }
+                return cached;
               }
-              return cached;
             }
           }
           cached = _$(DIRECT, $);
@@ -136,24 +125,13 @@ export default ({
   };
 
   class Handler {
-    constructor($) {
-      this.$ = $;
-    }
+    constructor($) { this.$ = $ }
 
-    defineProperty(_, key, descriptor) {
-      return reflect('defineProperty', this.$, toKey(key), toValue(descriptor));
-    }
-
-    deleteProperty(_, key) {
-      return reflect('deleteProperty', this.$, toKey(key));
-    }
-
-    get(_, key) {
-      return fromValue(reflect('get', this.$, toKey(key)));
-    }
-
+    get(_, key) { return fromValue(reflect('get', this.$, toKey(key))) }
+    set(_, key, value) { return reflect('set', this.$, toKey(key), toValue(value)) }
+    ownKeys(_) { return fromKeys(reflect('ownKeys', this.$), weakRefs) }
     getOwnPropertyDescriptor(_, key) {
-      const descriptor = reflect('getOwnPropertyDescriptor', this.$, toKey(key));
+      const descriptor = fromValue(reflect('getOwnPropertyDescriptor', this.$, toKey(key)));
       if (descriptor) {
         const { get, set, value } = descriptor;
         if (get) descriptor.get = fromValue(get);
@@ -162,30 +140,12 @@ export default ({
       }
       return descriptor;
     }
-
-    getPrototypeOf(_) {
-      return fromValue(reflect('getPrototypeOf', this.$));
-    }
-
-    isExtensible(_) {
-      return reflect('isExtensible', this.$);
-    }
-
-    ownKeys(_) {
-      return fromKeys(reflect('ownKeys', this.$), weakRefs);
-    }
-
-    preventExtensions(target) {
-      return preventExtensions(target) && reflect('preventExtensions', this.$);
-    }
-
-    set(_, key, value) {
-      return reflect('set', this.$, toKey(key), toValue(value));
-    }
-
-    setPrototypeOf(_, value) {
-      return reflect('setPrototypeOf', this.$, toValue(value));
-    }
+    defineProperty(_, key, descriptor) { return reflect('defineProperty', this.$, toKey(key), toValue(descriptor)) }
+    deleteProperty(_, key) { return reflect('deleteProperty', this.$, toKey(key)) }
+    getPrototypeOf(_) { return fromValue(reflect('getPrototypeOf', this.$)) }
+    setPrototypeOf(_, value) { return reflect('setPrototypeOf', this.$, toValue(value)) }
+    isExtensible(_) { return reflect('isExtensible', this.$) }
+    preventExtensions(target) { return preventExtensions(target) && reflect('preventExtensions', this.$) }
   }
 
   const has = ($, prop) => reflect('has', $, toKey(prop));
@@ -234,14 +194,14 @@ export default ({
       return has(this.$, prop);
     }
 
-    // TODO: new target ?
-    construct(_, args) {
-      return fromValue(reflect('construct', this.$, toValues(args)));
-    }
-
     apply(_, self, args) {
       const map = new Map;
       return fromValue(reflect('apply', this.$, toValue(self, map), toValues(args, map)));
+    }
+
+    // TODO: new target ?
+    construct(_, args) {
+      return fromValue(reflect('construct', this.$, toValues(args)));
     }
   }
 
@@ -301,12 +261,12 @@ export default ({
      * @returns
      */
     reflect: (method, uid, ...args) => {
-      switch (method) {
-        case 'unref':
-          return unref(uid);
-        case 'apply': {
-          return toValue(apply(ref(uid), fromValue(args[0]), fromValues(args[1], weakRefs)));
-        }
+      if (method === 'unref') return unref(uid);
+      if (method === 'apply') {
+        const [context, params] = args;
+        for (let i = 0, length = params.length; i < length; i++)
+          params[i] = fromValue(params[i]);
+        return toValue(apply(ref(uid), fromValue(context), params));
       }
     },
   };

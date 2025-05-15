@@ -7,7 +7,6 @@ import {
   SYMBOL,
   BIGINT,
   VIEW,
-  UNDEFINED,
 
   REMOTE_OBJECT,
   REMOTE_ARRAY,
@@ -18,7 +17,6 @@ import {
   isArray,
   isView,
   fromKey,
-  fromSymbol,
   toKey,
   toSymbol,
   identity,
@@ -28,12 +26,16 @@ import {
 
 import heap from './heap.js';
 
-const { getPrototypeOf } = Object;
-const { toStringTag } = Symbol;
-const toTag = (ref, name = ref[toStringTag]) =>
-  name in globalThis ? name : toTag(getPrototypeOf(ref));
+const toArray = view => {
+  const arr = [];
+  for (let i = 0, length = view.length; i < length; i++)
+    arr[i] = view[i];
+  return arr;
+};
 
-const toView = (name, buffer) => _$(VIEW, [name, [...new Uint8Array(buffer)]]);
+const toTag = (ref, name = ref[Symbol.toStringTag]) =>
+  name in globalThis ? name : toTag(Object.getPrototypeOf(ref));
+
 /**
  * @typedef {Object} LocalOptions Optional utilities used to orchestrate local <-> remote communication.
  * @property {Function} [reflect=identity] The function used to reflect operations via the remote receiver. Currently only `apply` and `unref` are supported.
@@ -52,62 +54,64 @@ export default ({
   remote = identity,
   module = name => import(name),
 } = {}) => {
+  // received values arrive via postMessage so are compatible
+  // with the structured clone algorithm
   const fromValue = (_$, cache = new Map) => {
     const [_, $] = _$;
-    switch (_) {
-      case OBJECT: {
-        if ($ === null) return globalThis;
-        let cached = cache.get(_$);
-        if (!cached) {
-          cached = $;
-          cache.set(_$, $);
-          for (const k in $) $[k] = fromValue($[k], cache);
-        }
-        return cached;
+    if (_ === OBJECT) {
+      if ($ === null) return globalThis;
+      let cached = cache.get(_$);
+      if (!cached) {
+        cached = $;
+        cache.set(_$, $);
+        for (const k in $) $[k] = fromValue($[k], cache);
       }
-      case ARRAY: {
-        return cache.get(_$) || (
-          cache.set(_$, $),
-          fromValues($, cache)
-        );
+      return cached;
+    }
+    if (_ === ARRAY) {
+      return cache.get(_$) || (
+        cache.set(_$, $),
+        fromValues($, cache)
+      );
+    }
+    if (_ === FUNCTION) {
+      let fn = weakRefs.get($), wr = fn?.deref();
+      if (!fn) {
+        if (wr) fr.unregister(wr);
+        fn = function (...args) {
+          remote.apply(this, args);
+          // values reflected asynchronously are not passed stringified
+          // because it makes no sense to use Atomics and SharedArrayBuffer
+          // to transfer these ... yet these must reflect the current state
+          // on this local side of affairs.
+          for (let i = 0, length = args.length; i < length; i++)
+            args[i] = toValue(args[i]);
+          return reflect('apply', $, toValue(this), args).then(fromValue);
+        };
+        wr = new WeakRef(fn);
+        weakRefs.set($, wr);
+        fr.register(fn, $, wr);
       }
-      case FUNCTION: {
-        let fn = weakRefs.get($), wr = fn?.deref();
-        if (!fn) {
-          if (wr) fr.unregister(wr);
-          fn = function (...args) {
-            remote.apply(this, args);
-            for (let i = 0, len = args.length; i < len; i++)
-              args[i] = toValue(args[i]);
-            return reflect('apply', $, toValue(this), args).then(fromValue);
-          };
-          wr = new WeakRef(fn);
-          weakRefs.set($, wr);
-          fr.register(fn, $, wr);
-        }
-        return fn;
-      }
-      case SYMBOL: return fromSymbol($);
+      return fn;
     }
     return (_ & REMOTE) ? ref($) : $;
   };
 
-  const fromValues = loopValues(fromValue);
-
-  const toKeys = loopValues(toKey);
-
-  // values sent to the remote are JSON serializable
-  // *unless* a direct reference is not JSON serializable
+  /**
+   * Converts values into TypeValue pairs when these
+   * are not JSON compatible (symbol, bigint) or
+   * local (functions, arrays, objects, globalThis).
+   * @param {any} value the current value
+   * @returns {any} the value as is or its TypeValue counterpart
+   */
   const toValue = value => {
     switch (typeof value) {
       case 'object': {
-        if (value === null) return _$(DIRECT, value);
+        if (value === null) break;
         if (value === globalThis) return globalTarget;
         const $ = transform(value);
-        if (isView($)) return toView(toTag($), $.buffer);
+        if (isView($)) return _$(VIEW, [toTag($), toArray($)]);
         return (indirect || !direct.has($)) ?
-          // anything that is not an Array is held as remote object
-          // unless explicitly marked as direct
           _$(isArray(value) ? REMOTE_ARRAY : REMOTE_OBJECT, id(value)) :
           _$(DIRECT, $)
         ;
@@ -115,14 +119,15 @@ export default ({
       case 'function': return _$(REMOTE_FUNCTION, id(value));
       case 'symbol': return _$(SYMBOL, toSymbol(value));
       case 'bigint': return _$(BIGINT, value.toString());
-      case 'undefined': return _$(UNDEFINED, value);
     }
-    return _$(DIRECT, value);
+    return value;
   };
 
-  let indirect = true, direct;
+  const fromValues = loopValues(fromValue);
+  const toKeys = loopValues(toKey);
 
   const { clear, id, ref, unref } = heap();
+
   const weakRefs = new Map;
   const globalTarget = _$(OBJECT, null);
   const fr = new FinalizationRegistry($ => {
@@ -130,19 +135,7 @@ export default ({
     reflect('unref', $);
   });
 
-  const {
-    apply,
-    construct,
-    defineProperty,
-    deleteProperty,
-    get,
-    getOwnPropertyDescriptor,
-    getPrototypeOf,
-    has,
-    ownKeys,
-    set,
-    setPrototypeOf,
-  } = Reflect;
+  let indirect = true, direct;
 
   return {
     /**
@@ -162,75 +155,47 @@ export default ({
     },
 
     /**
-     * The callback needed to resolve any remote proxy call.
-     * Its returned value will be understood by the remote implementation
-     * and it is compatible with the structured clone algorithm.
+     * This callback reflects locally every remote call.
+     * It accepts TypeValue pairs but it always returns a string
+     * to make it possible to use Atomics and SharedArrayBuffer.
      * @param {string} method
      * @param {number?} uid
      * @param  {...any} args
-     * @returns
+     * @returns {string?}
      */
     reflect: (method, uid, ...args) => {
-      const target = uid === null ? globalThis : ref(uid);
-      // the `case` order is by common use cases
-      switch (method) {
-        case 'get': {
-          const key = fromKey(args[0]);
-          return key === 'import' ?
-            _$(REMOTE_FUNCTION, id(module)) :
-            toValue(get(target, key))
-          ;
-        }
-        case 'apply': {
-          const map = new Map;
-          return toValue(apply(target, fromValue(args[0], map), fromValues(args[1], map)));
-        }
-        case 'set': {
-          return set(target, fromKey(args[0]), fromValue(args[1]));
-        }
-        case 'has': {
-          return has(target, fromKey(args[0]));
-        }
-        case 'ownKeys': {
-          return toKeys(ownKeys(target), weakRefs);
-        }
-        case 'construct': {
-          return toValue(construct(target, fromValues(args[0])));
-        }
-        case 'getOwnPropertyDescriptor': {
-          const descriptor = getOwnPropertyDescriptor(target, fromKey(args[0]));
-          if (descriptor) {
-            const { get, set, value } = descriptor;
-            //@ts-ignore
-            if (get) descriptor.get = toValue(get);
-            //@ts-ignore
-            if (set) descriptor.set = toValue(set);
-            //@ts-ignore
-            if (value) descriptor.value = toValue(value);
-          }
-          return descriptor;
-        }
-        case 'getPrototypeOf': {
-          return toValue(getPrototypeOf(target));
-        }
-        case 'defineProperty': {
-          return defineProperty(target, fromKey(args[0]), fromValue(args[1]));
-        }
-        case 'deleteProperty': {
-          return deleteProperty(target, fromKey(args[0]));
-        }
-        case 'setPrototypeOf': {
-          return setPrototypeOf(target, fromValue(args[0]));
-        }
-        case 'isExtensible':
-          // fall through
-        case 'preventExtensions': {
-          return Reflect[method](target);
-        }
-        case 'unref': {
-          return unref(uid);
-        }
+      if (method === 'unref') return unref(uid);
+      const fn = Reflect[method];
+      const isGlobal = uid === null;
+      const target = isGlobal ? globalThis : ref(uid);
+      // the order is by most common use cases
+      if (method === 'get') {
+        const key = fromKey(args[0]);
+        return toValue(isGlobal && key === 'import' ? module : fn(target, key));
       }
+      if (method === 'apply') {
+        const map = new Map;
+        return toValue(fn(target, fromValue(args[0], map), fromValues(args[1], map)));
+      }
+      if (method === 'set') return fn(target, fromKey(args[0]), fromValue(args[1]));
+      if (method === 'has') return fn(target, fromKey(args[0]));
+      if (method === 'ownKeys') return toKeys(fn(target), weakRefs);
+      if (method === 'construct') return toValue(fn(target, fromValues(args[0])));
+      if (method === 'getOwnPropertyDescriptor') {
+        const descriptor = fn(target, fromKey(args[0]));
+        if (descriptor) {
+          const { get, set, value } = descriptor;
+          if (get) descriptor.get = toValue(get);
+          if (set) descriptor.set = toValue(set);
+          if (value) descriptor.value = toValue(value);
+        }
+        return descriptor;
+      }
+      if (method === 'defineProperty') return fn(target, fromKey(args[0]), fromValue(args[1]));
+      if (method === 'deleteProperty') return fn(target, fromKey(args[0]));
+      if (method === 'getPrototypeOf') return toValue(fn(target));
+      if (method === 'setPrototypeOf') return fn(target, fromValue(args[0]));
+      return fn(target);
     },
 
     /**

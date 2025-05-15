@@ -8,15 +8,15 @@ declare function _default({ reflect, transform, remote, module, }?: LocalOptions
      */
     direct<T extends WeakKey>(value: T): T;
     /**
-     * The callback needed to resolve any remote proxy call.
-     * Its returned value will be understood by the remote implementation
-     * and it is compatible with the structured clone algorithm.
+     * This callback reflects locally every remote call.
+     * It accepts TypeValue pairs but it always returns a string
+     * to make it possible to use Atomics and SharedArrayBuffer.
      * @param {string} method
      * @param {number?} uid
      * @param  {...any} args
-     * @returns
+     * @returns {string?}
      */
-    reflect: (method: string, uid: number | null, ...args: any[]) => boolean | any[] | TypedPropertyDescriptor<any>;
+    reflect: (method: string, uid: number | null, ...args: any[]) => string | null;
     /**
      * Terminates the local side of the communication,
      * erasing and unregistering all the cached references.

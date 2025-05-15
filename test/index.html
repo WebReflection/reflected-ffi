@@ -7,6 +7,9 @@
     import nextResolver from 'https://esm.run/next-resolver';
     import local from '../src/local.js';
 
+    globalThis.testArray = [];
+    globalThis.testObject = {};
+
     const [next, resolve] = nextResolver();
 
     const waiting = new Map;
@@ -25,19 +28,22 @@
       else {
         const result = reflect(...args);
         if (args[0] !== 'unref') {
-          const json = JSON.stringify(result);
-          const { length } = json;
-          const ui16a = new Uint16Array(i32a.buffer, 4, length);
-          for (let i = 0; i < length; i++) ui16a[i] = json.charCodeAt(i);
-          i32a[0] = length;
+          if (result === void 0)
+            i32a[1] = 0;
+          else {
+            const json = JSON.stringify(result);
+            const { length } = json;
+            const ui16a = new Uint16Array(i32a.buffer, 8, length);
+            for (let i = 0; i < length; i++) ui16a[i] = json.charCodeAt(i);
+            i32a[1] = length;
+          }
+          i32a[0] = 1;
           Atomics.notify(i32a, 0);
         }
       }
     };
 
-    setTimeout(async () => {
-      console.log('shenanigans', await shenanigans());
-    }, 1000);
+    // setTimeout(async () => { console.log('shenanigans', await shenanigans()) }, 1000);
   </script>
 </head>
 </html>

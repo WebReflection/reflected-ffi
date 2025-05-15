@@ -6,7 +6,6 @@ export const FUNCTION: number;
 export const SYMBOL: number;
 export const BIGINT: number;
 export const VIEW: number;
-export const UNDEFINED: number;
 export const REMOTE_OBJECT: number;
 export const REMOTE_ARRAY: number;
 export const REMOTE_FUNCTION: number;
