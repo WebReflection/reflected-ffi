@@ -57,6 +57,7 @@ export default ({
   // received values arrive via postMessage so are compatible
   // with the structured clone algorithm
   const fromValue = (_$, cache = new Map) => {
+    if (!isArray(_$)) return _$;
     const [_, $] = _$;
     if (_ === OBJECT) {
       if ($ === null) return globalThis;
@@ -97,6 +98,7 @@ export default ({
     return (_ & REMOTE) ? ref($) : $;
   };
 
+  // OBJECT, DIRECT, VIEW, REMOTE_ARRAY, REMOTE_OBJECT, REMOTE_FUNCTION, SYMBOL, BIGINT
   /**
    * Converts values into TypeValue pairs when these
    * are not JSON compatible (symbol, bigint) or
@@ -110,11 +112,12 @@ export default ({
         if (value === null) break;
         if (value === globalThis) return globalTarget;
         const $ = transform(value);
-        if (isView($)) return _$(VIEW, [toTag($), toArray($)]);
-        return (indirect || !direct.has($)) ?
-          _$(isArray(value) ? REMOTE_ARRAY : REMOTE_OBJECT, id(value)) :
-          _$(DIRECT, $)
-        ;
+        return (hasDirect && direct.has($)) ?
+          _$(DIRECT, $) : (
+          isView($) ?
+            _$(VIEW, [toTag($), toArray($)]) :
+            _$(isArray($) ? REMOTE_ARRAY : REMOTE_OBJECT, id($))
+        );
       }
       case 'function': return _$(REMOTE_FUNCTION, id(value));
       case 'symbol': return _$(SYMBOL, toSymbol(value));
@@ -135,7 +138,7 @@ export default ({
     reflect('unref', $);
   });
 
-  let indirect = true, direct;
+  let hasDirect = false, direct;
 
   return {
     /**
@@ -146,8 +149,8 @@ export default ({
      * @returns {T}
      */
     direct(value) {
-      if (indirect) {
-        indirect = false;
+      if (!hasDirect) {
+        hasDirect = true;
         direct = new WeakSet;
       }
       direct.add(value);
@@ -161,7 +164,7 @@ export default ({
      * @param {string} method
      * @param {number?} uid
      * @param  {...any} args
-     * @returns {string?}
+     * @returns
      */
     reflect: (method, uid, ...args) => {
       if (method === 'unref') return unref(uid);
@@ -184,10 +187,8 @@ export default ({
       if (method === 'getOwnPropertyDescriptor') {
         const descriptor = fn(target, fromKey(args[0]));
         if (descriptor) {
-          const { get, set, value } = descriptor;
-          if (get) descriptor.get = toValue(get);
-          if (set) descriptor.set = toValue(set);
-          if (value) descriptor.value = toValue(value);
+          for (const k in descriptor)
+            descriptor[k] = toValue(descriptor[k]);
         }
         return descriptor;
       }

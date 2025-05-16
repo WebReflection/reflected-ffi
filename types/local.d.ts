@@ -14,9 +14,9 @@ declare function _default({ reflect, transform, remote, module, }?: LocalOptions
      * @param {string} method
      * @param {number?} uid
      * @param  {...any} args
-     * @returns {string?}
+     * @returns
      */
-    reflect: (method: string, uid: number | null, ...args: any[]) => string | null;
+    reflect: (method: string, uid: number | null, ...args: any[]) => any;
     /**
      * Terminates the local side of the communication,
      * erasing and unregistering all the cached references.

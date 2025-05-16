@@ -26,8 +26,12 @@ import {
 
 import heap from './heap.js';
 
-const { keys, preventExtensions } = Object;
+const { getPrototypeOf, preventExtensions } = Object;
 const { apply } = Reflect;
+const { toString } = {};
+
+const toName = (ref, name = toString.call(ref).slice(8, -1)) =>
+  name in globalThis ? name : toName(getPrototypeOf(ref) || toName);
 
 /**
  * @typedef {Object} RemoteOptions Optional utilities used to orchestrate local <-> remote communication.
@@ -45,6 +49,7 @@ export default ({
 } = {}) => {
   const fromKeys = loopValues(fromKey);
 
+  // OBJECT, DIRECT, VIEW, REMOTE_ARRAY, REMOTE_OBJECT, REMOTE_FUNCTION, SYMBOL, BIGINT
   const fromValue = value => {
     if (!isArray(value)) return value;
     const [t, v] = value;
@@ -62,7 +67,7 @@ export default ({
   const toValue = (value, cache = new Map) => {
     switch (typeof value) {
       case 'object': {
-        if (value === null || isView(value)) return _$(DIRECT, value);
+        if (value === null) break;
         if (remote in value) return reference;
         if (value === globalThis) return globalTarget;
         let cached = cache.get(value);
@@ -73,24 +78,17 @@ export default ({
               const a = [];
               cached = _$(ARRAY, a);
               cache.set(value, cached);
-              for (let i = 0; i < $.length; i++)
+              for (let i = 0, length = $.length; i < length; i++)
                 a[i] = toValue($[i], cache);
               return cached;
             }
-            if (!isView($)) {
-              // TODO: except views, natives don't have own keys ... right?
-              const props = keys($);
-              const length = props.length;
-              if (length) {
-                const o = {};
-                cached = _$(OBJECT, o);
-                cache.set(value, cached);
-                for (let k, i = 0; i < length; i++) {
-                  k = props[i];
-                  o[k] = toValue($[k], cache);
-                }
-                return cached;
-              }
+            if (!isView($) && toName($) === 'Object') {
+              const o = {};
+              cached = _$(OBJECT, o);
+              cache.set(value, cached);
+              for (const k in $)
+                o[k] = toValue($[k], cache);
+              return cached;
             }
           }
           cached = _$(DIRECT, $);
@@ -104,7 +102,7 @@ export default ({
       }
       case 'symbol': return _$(SYMBOL, toSymbol(value));
     }
-    return _$(DIRECT, value);
+    return value;
   };
 
   const toValues = loopValues(toValue);
@@ -133,10 +131,8 @@ export default ({
     getOwnPropertyDescriptor(_, key) {
       const descriptor = fromValue(reflect('getOwnPropertyDescriptor', this.$, toKey(key)));
       if (descriptor) {
-        const { get, set, value } = descriptor;
-        if (get) descriptor.get = fromValue(get);
-        if (set) descriptor.set = fromValue(set);
-        if (value) descriptor.value = fromValue(value);
+        for (const k in descriptor)
+          descriptor[k] = fromValue(descriptor[k]);
       }
       return descriptor;
     }
@@ -148,7 +144,10 @@ export default ({
     preventExtensions(target) { return preventExtensions(target) && reflect('preventExtensions', this.$) }
   }
 
-  const has = ($, prop) => reflect('has', $, toKey(prop));
+  const has = (_, $, prop) => prop === remote ?
+    !!(reference = _) :
+    reflect('has', $, toKey(prop))
+  ;
 
   class ObjectHandler extends Handler {
     constructor(_$, $) {
@@ -156,13 +155,7 @@ export default ({
       return new Proxy({ $: _$ }, super($));
     }
 
-    has(target, prop) {
-      if (prop === remote) {
-        reference = target.$;
-        return true;
-      }
-      return has(this.$, prop);
-    }
+    has(target, prop) { return has(target.$, this.$, prop) }
   }
 
   class ArrayHandler extends Handler {
@@ -171,13 +164,7 @@ export default ({
       return new Proxy(_$, super($));
     }
 
-    has(target, prop) {
-      if (prop === remote) {
-        reference = target;
-        return true;
-      }
-      return has(this.$, prop);
-    }
+    has(target, prop) { return has(target, this.$, prop) }
   }
 
   class FunctionHandler extends Handler {
@@ -186,22 +173,12 @@ export default ({
       return new Proxy(asFunction.bind(_$), super($));
     }
 
-    has(target, prop) {
-      if (prop === remote) {
-        reference = target();
-        return true;
-      }
-      return has(this.$, prop);
-    }
+    has(target, prop) { return has(target(), this.$, prop) }
+    construct(_, args) { return fromValue(reflect('construct', this.$, toValues(args))) }
 
     apply(_, self, args) {
       const map = new Map;
       return fromValue(reflect('apply', this.$, toValue(self, map), toValues(args, map)));
-    }
-
-    // TODO: new target ?
-    construct(_, args) {
-      return fromValue(reflect('construct', this.$, toValues(args)));
     }
   }
 
