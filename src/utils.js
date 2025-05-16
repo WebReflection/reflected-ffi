@@ -22,6 +22,8 @@ export const _$ = (type, value) => [type, value];
 
 export const identity = value => value;
 
+export const object = {};
+
 /**
  * Create a function that loops through an array and applies a function to each value.
  * @param {(value:any, cache?:Map<any, any>) => any} asValue

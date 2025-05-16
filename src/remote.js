@@ -21,6 +21,7 @@ import {
   toSymbol,
   identity,
   loopValues,
+  object,
   _$,
 } from './utils.js';
 
@@ -28,10 +29,10 @@ import heap from './heap.js';
 
 const { getPrototypeOf, preventExtensions } = Object;
 const { apply } = Reflect;
-const { toString } = {};
+const { toString } = object;
 
 const toName = (ref, name = toString.call(ref).slice(8, -1)) =>
-  name in globalThis ? name : toName(getPrototypeOf(ref) || toName);
+  name in globalThis ? name : toName(getPrototypeOf(ref) || object);
 
 /**
  * @typedef {Object} RemoteOptions Optional utilities used to orchestrate local <-> remote communication.
@@ -46,7 +47,7 @@ const toName = (ref, name = toString.call(ref).slice(8, -1)) =>
 export default ({
   reflect = identity,
   transform = identity,
-} = {}) => {
+} = object) => {
   const fromKeys = loopValues(fromKey);
 
   // OBJECT, DIRECT, VIEW, REMOTE_ARRAY, REMOTE_OBJECT, REMOTE_FUNCTION, SYMBOL, BIGINT

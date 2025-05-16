@@ -67,3 +67,7 @@ console.time('Int16Array');
 i16a = new Int16Array(1 << 20);
 console.timeEnd('Int16Array');
 console.log(i16a.length);
+
+console.log({ check: global.check }, 'check' in global);
+global.check = void 0;
+console.log({ check: global.check }, 'check' in global);

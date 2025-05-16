@@ -21,6 +21,7 @@ import {
   toSymbol,
   identity,
   loopValues,
+  object,
   _$,
 } from './utils.js';
 
@@ -53,30 +54,30 @@ export default ({
   transform = identity,
   remote = identity,
   module = name => import(name),
-} = {}) => {
+} = object) => {
   // received values arrive via postMessage so are compatible
   // with the structured clone algorithm
-  const fromValue = (_$, cache = new Map) => {
-    if (!isArray(_$)) return _$;
-    const [_, $] = _$;
-    if (_ === OBJECT) {
-      if ($ === null) return globalThis;
-      let cached = cache.get(_$);
+  const fromValue = (value, cache = new Map) => {
+    if (!isArray(value)) return value;
+    const [t, v] = value;
+    if (t === OBJECT) {
+      if (v === null) return globalThis;
+      let cached = cache.get(value);
       if (!cached) {
-        cached = $;
-        cache.set(_$, $);
-        for (const k in $) $[k] = fromValue($[k], cache);
+        cached = v;
+        cache.set(value, v);
+        for (const k in v) v[k] = fromValue(v[k], cache);
       }
       return cached;
     }
-    if (_ === ARRAY) {
-      return cache.get(_$) || (
-        cache.set(_$, $),
-        fromValues($, cache)
+    if (t === ARRAY) {
+      return cache.get(value) || (
+        cache.set(value, v),
+        fromValues(v, cache)
       );
     }
-    if (_ === FUNCTION) {
-      let fn = weakRefs.get($), wr = fn?.deref();
+    if (t === FUNCTION) {
+      let fn = weakRefs.get(v), wr = fn?.deref();
       if (!fn) {
         if (wr) fr.unregister(wr);
         fn = function (...args) {
@@ -87,15 +88,15 @@ export default ({
           // on this local side of affairs.
           for (let i = 0, length = args.length; i < length; i++)
             args[i] = toValue(args[i]);
-          return reflect('apply', $, toValue(this), args).then(fromValue);
+          return reflect('apply', v, toValue(this), args).then(fromValue);
         };
         wr = new WeakRef(fn);
-        weakRefs.set($, wr);
-        fr.register(fn, $, wr);
+        weakRefs.set(v, wr);
+        fr.register(fn, v, wr);
       }
       return fn;
     }
-    return (_ & REMOTE) ? ref($) : $;
+    return (t & REMOTE) ? ref(v) : v;
   };
 
   // OBJECT, DIRECT, VIEW, REMOTE_ARRAY, REMOTE_OBJECT, REMOTE_FUNCTION, SYMBOL, BIGINT
