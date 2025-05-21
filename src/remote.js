@@ -69,8 +69,8 @@ export default ({
     switch (typeof value) {
       case 'object': {
         if (value === null) break;
-        if (remote in value) return reference;
         if (value === globalThis) return globalTarget;
+        if (reflected in value) return reference;
         let cached = cache.get(value);
         if (!cached) {
           const $ = transform(value);
@@ -98,8 +98,14 @@ export default ({
         return cached;
       }
       case 'function': {
-        if (remote in value) return reference;
-        return _$(FUNCTION, id(value));
+        if (reflected in value) return reference;
+        let cached = cache.get(value);
+        if (!cached) {
+          const $ = transform(value);
+          cached = _$(FUNCTION, id($));
+          cache.set(value, cached);
+        }
+        return cached;
       }
       case 'symbol': return _$(SYMBOL, toSymbol(value));
     }
@@ -145,7 +151,7 @@ export default ({
     preventExtensions(target) { return preventExtensions(target) && reflect('preventExtensions', this.$) }
   }
 
-  const has = (_, $, prop) => prop === remote ?
+  const has = (_, $, prop) => prop === reflected ?
     !!(reference = _) :
     reflect('has', $, toKey(prop))
   ;
@@ -187,8 +193,8 @@ export default ({
 
   const { id, ref, unref } = heap();
   const weakRefs = new Map;
-  const remote = Symbol('remote');
   const globalTarget = _$(OBJECT, null);
+  const reflected = Symbol('reflected-ffi');
   const global = new ObjectHandler(globalTarget, null);
   const fr = new FinalizationRegistry($ => {
     weakRefs.delete($);
@@ -224,9 +230,9 @@ export default ({
      * @returns {boolean}
      */
     isProxy: value => (
-      value !== null &&
       typeof value === 'object' &&
-      remote in value
+      value !== null &&
+      reflected in value
     ),
 
     /**

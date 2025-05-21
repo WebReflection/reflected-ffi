@@ -120,7 +120,7 @@ export default ({
             _$(isArray($) ? REMOTE_ARRAY : REMOTE_OBJECT, id($))
         );
       }
-      case 'function': return _$(REMOTE_FUNCTION, id(value));
+      case 'function': return _$(REMOTE_FUNCTION, id(transform(value)));
       case 'symbol': return _$(SYMBOL, toSymbol(value));
       case 'bigint': return _$(BIGINT, value.toString());
     }
