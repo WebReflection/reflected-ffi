@@ -47,6 +47,7 @@ const toName = (ref, name = toString.call(ref).slice(8, -1)) =>
 export default ({
   reflect = identity,
   transform = identity,
+  released = identity,
 } = object) => {
   const fromKeys = loopValues(fromKey);
 
@@ -245,7 +246,10 @@ export default ({
      * @returns
      */
     reflect: (method, uid, ...args) => {
-      if (method === 'unref') return unref(uid);
+      if (method === 'unref') {
+        released(ref(uid));
+        return unref(uid);
+      }
       if (method === 'apply') {
         const [context, params] = args;
         for (let i = 0, length = params.length; i < length; i++)
