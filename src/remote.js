@@ -31,7 +31,6 @@ import {
 import heap from './heap.js';
 
 const { getPrototypeOf, preventExtensions } = Object;
-const { apply } = Reflect;
 const { toString } = object;
 
 const toName = (ref, name = toString.call(ref).slice(8, -1)) =>
@@ -250,15 +249,17 @@ export default ({
      * @returns
      */
     reflect: (method, uid, ...args) => {
-      if (method === 'unref') {
-        released(ref(uid));
-        return unref(uid);
-      }
-      if (method === 'apply') {
-        const [context, params] = args;
-        for (let i = 0, length = params.length; i < length; i++)
-          params[i] = fromValue(params[i]);
-        return toValue(apply(ref(uid), fromValue(context), params));
+      switch (method) {
+        case 'apply': {
+          const [context, params] = args;
+          for (let i = 0, length = params.length; i < length; i++)
+            params[i] = fromValue(params[i]);
+          return toValue(Reflect.apply(ref(uid), fromValue(context), params));
+        }
+        case 'unref': {
+          released(ref(uid));
+          return unref(uid);
+        }
       }
     },
   };

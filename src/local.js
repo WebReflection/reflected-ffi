@@ -178,36 +178,37 @@ export default ({
      * @returns
      */
     reflect: (method, uid, ...args) => {
-      if (method === 'unref') return unref(uid);
-      const fn = Reflect[method];
       const isGlobal = uid === null;
       const target = isGlobal ? globalThis : ref(uid);
       // the order is by most common use cases
-      if (method === 'get') {
-        const key = fromKey(args[0]);
-        return toValue(isGlobal && key === 'import' ? module : fn(target, key));
-      }
-      if (method === 'apply') {
-        const map = new Map;
-        return toValue(fn(target, fromValue(args[0], map), fromValues(args[1], map)));
-      }
-      if (method === 'set') return fn(target, fromKey(args[0]), fromValue(args[1]));
-      if (method === 'has') return fn(target, fromKey(args[0]));
-      if (method === 'ownKeys') return toKeys(fn(target), weakRefs);
-      if (method === 'construct') return toValue(fn(target, fromValues(args[0])));
-      if (method === 'getOwnPropertyDescriptor') {
-        const descriptor = fn(target, fromKey(args[0]));
-        if (descriptor) {
-          for (const k in descriptor)
-            descriptor[k] = toValue(descriptor[k]);
+      switch (method) {
+        case 'get': {
+          const key = fromKey(args[0]);
+          return toValue(isGlobal && key === 'import' ? module : Reflect.get(target, key));
         }
-        return descriptor;
+        case 'apply': {
+          const map = new Map;
+          return toValue(Reflect.apply(target, fromValue(args[0], map), fromValues(args[1], map)));
+        }
+        case 'set': return Reflect.set(target, fromKey(args[0]), fromValue(args[1]));
+        case 'has': return Reflect.has(target, fromKey(args[0]));
+        case 'ownKeys': return toKeys(Reflect.ownKeys(target), weakRefs);
+        case 'construct': return toValue(Reflect.construct(target, fromValues(args[0])));
+        case 'getOwnPropertyDescriptor': {
+          const descriptor = Reflect.getOwnPropertyDescriptor(target, fromKey(args[0]));
+          if (descriptor) {
+            for (const k in descriptor)
+              descriptor[k] = toValue(descriptor[k]);
+          }
+          return descriptor;
+        }
+        case 'defineProperty': return Reflect.defineProperty(target, fromKey(args[0]), fromValue(args[1]));
+        case 'deleteProperty': return Reflect.deleteProperty(target, fromKey(args[0]));
+        case 'getPrototypeOf': return toValue(Reflect.getPrototypeOf(target));
+        case 'setPrototypeOf': return Reflect.setPrototypeOf(target, fromValue(args[0]));
+        case 'unref': return unref(uid);
+        default: return Reflect[method](target);
       }
-      if (method === 'defineProperty') return fn(target, fromKey(args[0]), fromValue(args[1]));
-      if (method === 'deleteProperty') return fn(target, fromKey(args[0]));
-      if (method === 'getPrototypeOf') return toValue(fn(target));
-      if (method === 'setPrototypeOf') return fn(target, fromValue(args[0]));
-      return fn(target);
     },
 
     /**
