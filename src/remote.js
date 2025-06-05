@@ -33,8 +33,10 @@ import heap from './heap.js';
 const { getPrototypeOf, preventExtensions } = Object;
 const { toString } = object;
 
+/* c8 ignore start */
 const toName = (ref, name = toString.call(ref).slice(8, -1)) =>
   name in globalThis ? name : toName(getPrototypeOf(ref) || object);
+/* c8 ignore stop */
 
 /**
  * @typedef {Object} RemoteOptions Optional utilities used to orchestrate local <-> remote communication.
@@ -121,7 +123,9 @@ export default ({
   const asProxy = (tv, t, v) => {
     let wr = weakRefs.get(v), proxy = wr?.deref();
     if (!proxy) {
+      /* c8 ignore start */
       if (wr) fr.unregister(wr);
+      /* c8 ignore stop */
       proxy = new (
         t === REMOTE_OBJECT ? ObjectHandler :
         (t === REMOTE_ARRAY ? ArrayHandler : FunctionHandler)
@@ -233,11 +237,13 @@ export default ({
      * @param {any} value
      * @returns {boolean}
      */
-    isProxy: value => (
-      typeof value === 'object' &&
-      value !== null &&
-      reflected in value
-    ),
+    isProxy: value => {
+      switch (typeof value) {
+        case 'object': if (value === null) break;
+        case 'function': return reflected in value;
+        default: return false;
+      }
+    },
 
     /**
      * The callback needed to resolve any local call. Currently only `apply` and `unref` are supported.

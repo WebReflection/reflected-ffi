@@ -41,8 +41,10 @@ const toArray = view => {
   return arr;
 };
 
+/* c8 ignore start */
 const toTag = (ref, name = ref[toStringTag]) =>
   name in globalThis ? name : toTag(getPrototypeOf(ref));
+/* c8 ignore stop */
 
 /**
  * @typedef {Object} LocalOptions Optional utilities used to orchestrate local <-> remote communication.
@@ -85,18 +87,25 @@ export default ({
         );
       }
       case FUNCTION: {
-        let fn = weakRefs.get(v), wr = fn?.deref();
+        let wr = weakRefs.get(v), fn = wr?.deref();
         if (!fn) {
+          /* c8 ignore start */
           if (wr) fr.unregister(wr);
+          /* c8 ignore stop */
           fn = function (...args) {
             remote.apply(this, args);
+
             // values reflected asynchronously are not passed stringified
             // because it makes no sense to use Atomics and SharedArrayBuffer
             // to transfer these ... yet these must reflect the current state
             // on this local side of affairs.
             for (let i = 0, length = args.length; i < length; i++)
               args[i] = toValue(args[i]);
-            return reflect('apply', v, toValue(this), args).then(fromValue);
+
+            const result = reflect('apply', v, toValue(this), args);
+            /* c8 ignore start */
+            return result instanceof Promise ? result.then(fromValue) : fromValue(result);
+            /* c8 ignore stop */
           };
           wr = new WeakRef(fn);
           weakRefs.set(v, wr);
@@ -144,9 +153,9 @@ export default ({
 
   const weakRefs = new Map;
   const globalTarget = tv(OBJECT, null);
-  const fr = new FinalizationRegistry($ => {
-    weakRefs.delete($);
-    reflect('unref', $);
+  const fr = new FinalizationRegistry(v => {
+    weakRefs.delete(v);
+    reflect('unref', v);
   });
 
   let hasDirect = false, direct;

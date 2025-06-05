@@ -2,15 +2,21 @@ import local from '../src/local.js';
 import remote from '../src/remote.js';
 import './symbol.js';
 
+const array = [1, 2, 3];
+
 const there = remote({
   reflect: (...args) => here.reflect(...args),
+  transform: value => value === array ? there.direct(array) : value,
 });
 
 const here = local({
   reflect: (...args) => there.reflect(...args),
+  transform: value => value === array ? here.direct(array) : value,
 });
 
 const { global } = there;
+
+global.trapped = function trap() {};
 
 console.assert('isArray' in global.Array);
 console.assert(global.Array.isArray([]));
@@ -54,11 +60,37 @@ let fn = global.Function('a', 'return a');
 console.assert(fn(true));
 console.assert(!!fn(globalThis));
 console.assert(fn(global) === global);
+console.assert(fn(null) === null);
+console.assert(fn(Symbol.iterator) === Symbol.iterator);
+
+console.assert(fn(Function) === fn(Function));
+
+// visually check one is bound the other one isn't
+console.log(fn(Function));
+global.console.log(fn(Function));
+
+console.assert(there.isProxy(global.JSON));
+console.assert(there.isProxy(global.Array));
+console.assert(!there.isProxy(null));
+console.assert(!there.isProxy(false));
+
+global.console.assert(fn(array) === array);
+global.console.assert(fn(123n) === 123n);
+
+console.assert(ArrayBuffer.isView(new global.Int32Array([1, 2, 3])));
+console.assert(!!global.import);
+
+Object.defineProperty(global, 'test', { value: 123 });
+console.assert(global.test === 123);
+
+global.setTimeout((a, b, c) => console.assert(a === 1 && b === 2 && c === 3), 10, 1, 2, 3);
 
 let arr = new global.Array(1, 2, 3);
 fn(here.direct([arr, arr]));
 
 obj = null;
+global.trapped = null;
+
 try {
   setTimeout(gc);
   setTimeout(console.log, 250, 'done with gc');
