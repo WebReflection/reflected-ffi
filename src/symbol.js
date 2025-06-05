@@ -1,4 +1,13 @@
-const symbols = new Set(Reflect.ownKeys(Symbol).map(name => Symbol[name]));
+const symbols = new Map(
+  Reflect.ownKeys(Symbol).map(
+    key => [Symbol[key], `@${key}`]
+  )
+);
+
+const asSymbol = (value, description) => (
+  description === void 0 ? '?' :
+  (Symbol.keyFor(value) === void 0 ? `!${description}` : `#${description}`)
+);
 
 /**
  * Extract the value from a pair of type and value.
@@ -19,9 +28,4 @@ export const fromSymbol = name => {
  * @param {symbol} value
  * @returns {string}
  */
-export const toSymbol = value => {
-  let description = value.description;
-  if (symbols.has(value)) return `@${description.slice(7)}`;
-  if (Symbol.keyFor(value) !== void 0) return `#${description}`;
-  return description === void 0 ? '?' : `!${description}`;
-};
+export const toSymbol = value => symbols.get(value) || asSymbol(value, value.description);
