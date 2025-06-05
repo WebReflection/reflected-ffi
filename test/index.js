@@ -1,5 +1,6 @@
 import local from '../src/local.js';
 import remote from '../src/remote.js';
+import './symbol.js';
 
 const there = remote({
   reflect: (...args) => here.reflect(...args),

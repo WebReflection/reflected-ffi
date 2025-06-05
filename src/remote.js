@@ -13,16 +13,19 @@ import {
 } from './types.js';
 
 import {
+  fromSymbol,
+  toSymbol,
+} from './symbol.js';
+
+import {
   isArray,
   isView,
   fromKey,
-  fromSymbol,
   toKey,
-  toSymbol,
   identity,
   loopValues,
   object,
-  _$,
+  tv,
 } from './utils.js';
 
 import heap from './heap.js';
@@ -38,6 +41,7 @@ const toName = (ref, name = toString.call(ref).slice(8, -1)) =>
  * @typedef {Object} RemoteOptions Optional utilities used to orchestrate local <-> remote communication.
  * @property {Function} [reflect=identity] The function used to reflect operations via the remote receiver. All `Reflect` methods + `unref` are supported.
  * @property {Function} [transform=identity] The function used to transform local values into simpler references that the remote side can understand.
+ * @property {Function} [released=identity] The function invoked when a reference is released.
  */
 
 /**
@@ -78,7 +82,7 @@ export default ({
           if (indirect || !direct.has($)) {
             if (isArray($)) {
               const a = [];
-              cached = _$(ARRAY, a);
+              cached = tv(ARRAY, a);
               cache.set(value, cached);
               for (let i = 0, length = $.length; i < length; i++)
                 a[i] = toValue($[i], cache);
@@ -86,14 +90,14 @@ export default ({
             }
             if (!isView($) && toName($) === 'Object') {
               const o = {};
-              cached = _$(OBJECT, o);
+              cached = tv(OBJECT, o);
               cache.set(value, cached);
               for (const k in $)
                 o[k] = toValue($[k], cache);
               return cached;
             }
           }
-          cached = _$(DIRECT, $);
+          cached = tv(DIRECT, $);
           cache.set(value, cached);
         }
         return cached;
@@ -103,53 +107,53 @@ export default ({
         let cached = cache.get(value);
         if (!cached) {
           const $ = transform(value);
-          cached = _$(FUNCTION, id($));
+          cached = tv(FUNCTION, id($));
           cache.set(value, cached);
         }
         return cached;
       }
-      case 'symbol': return _$(SYMBOL, toSymbol(value));
+      case 'symbol': return tv(SYMBOL, toSymbol(value));
     }
     return value;
   };
 
   const toValues = loopValues(toValue);
 
-  const asProxy = (_$, _, $) => {
-    let wr = weakRefs.get($), proxy = wr?.deref();
+  const asProxy = (tv, t, v) => {
+    let wr = weakRefs.get(v), proxy = wr?.deref();
     if (!proxy) {
       if (wr) fr.unregister(wr);
       proxy = new (
-        _ === REMOTE_OBJECT ? ObjectHandler :
-        (_ === REMOTE_ARRAY ? ArrayHandler : FunctionHandler)
-      )(_$, $);
+        t === REMOTE_OBJECT ? ObjectHandler :
+        (t === REMOTE_ARRAY ? ArrayHandler : FunctionHandler)
+      )(tv, v);
       wr = new WeakRef(proxy);
-      weakRefs.set($, wr);
-      fr.register(proxy, $, wr);
+      weakRefs.set(v, wr);
+      fr.register(proxy, v, wr);
     }
     return proxy;
   };
 
   class Handler {
-    constructor($) { this.$ = $ }
+    constructor(_) { this._ = _ }
 
-    get(_, key) { return fromValue(reflect('get', this.$, toKey(key))) }
-    set(_, key, value) { return reflect('set', this.$, toKey(key), toValue(value)) }
-    ownKeys(_) { return fromKeys(reflect('ownKeys', this.$), weakRefs) }
+    get(_, key) { return fromValue(reflect('get', this._, toKey(key))) }
+    set(_, key, value) { return reflect('set', this._, toKey(key), toValue(value)) }
+    ownKeys(_) { return fromKeys(reflect('ownKeys', this._), weakRefs) }
     getOwnPropertyDescriptor(_, key) {
-      const descriptor = fromValue(reflect('getOwnPropertyDescriptor', this.$, toKey(key)));
+      const descriptor = fromValue(reflect('getOwnPropertyDescriptor', this._, toKey(key)));
       if (descriptor) {
         for (const k in descriptor)
           descriptor[k] = fromValue(descriptor[k]);
       }
       return descriptor;
     }
-    defineProperty(_, key, descriptor) { return reflect('defineProperty', this.$, toKey(key), toValue(descriptor)) }
-    deleteProperty(_, key) { return reflect('deleteProperty', this.$, toKey(key)) }
-    getPrototypeOf(_) { return fromValue(reflect('getPrototypeOf', this.$)) }
-    setPrototypeOf(_, value) { return reflect('setPrototypeOf', this.$, toValue(value)) }
-    isExtensible(_) { return reflect('isExtensible', this.$) }
-    preventExtensions(target) { return preventExtensions(target) && reflect('preventExtensions', this.$) }
+    defineProperty(_, key, descriptor) { return reflect('defineProperty', this._, toKey(key), toValue(descriptor)) }
+    deleteProperty(_, key) { return reflect('deleteProperty', this._, toKey(key)) }
+    getPrototypeOf(_) { return fromValue(reflect('getPrototypeOf', this._)) }
+    setPrototypeOf(_, value) { return reflect('setPrototypeOf', this._, toValue(value)) }
+    isExtensible(_) { return reflect('isExtensible', this._) }
+    preventExtensions(target) { return preventExtensions(target) && reflect('preventExtensions', this._) }
   }
 
   const has = (_, $, prop) => prop === reflected ?
@@ -158,35 +162,35 @@ export default ({
   ;
 
   class ObjectHandler extends Handler {
-    constructor(_$, $) {
+    constructor(tv, v) {
       //@ts-ignore
-      return new Proxy({ $: _$ }, super($));
+      return new Proxy({ _: tv }, super(v));
     }
 
-    has(target, prop) { return has(target.$, this.$, prop) }
+    has(target, prop) { return has(target._, this._, prop) }
   }
 
   class ArrayHandler extends Handler {
-    constructor(_$, $) {
+    constructor(tv, v) {
       //@ts-ignore
-      return new Proxy(_$, super($));
+      return new Proxy(tv, super(v));
     }
 
-    has(target, prop) { return has(target, this.$, prop) }
+    has(target, prop) { return has(target, this._, prop) }
   }
 
   class FunctionHandler extends Handler {
-    constructor(_$, $) {
+    constructor(tv, v) {
       //@ts-ignore
-      return new Proxy(asFunction.bind(_$), super($));
+      return new Proxy(asFunction.bind(tv), super(v));
     }
 
-    has(target, prop) { return has(target(), this.$, prop) }
-    construct(_, args) { return fromValue(reflect('construct', this.$, toValues(args))) }
+    has(target, prop) { return has(target(), this._, prop) }
+    construct(_, args) { return fromValue(reflect('construct', this._, toValues(args))) }
 
     apply(_, self, args) {
       const map = new Map;
-      return fromValue(reflect('apply', this.$, toValue(self, map), toValues(args, map)));
+      return fromValue(reflect('apply', this._, toValue(self, map), toValues(args, map)));
     }
   }
 
@@ -194,12 +198,12 @@ export default ({
 
   const { id, ref, unref } = heap();
   const weakRefs = new Map;
-  const globalTarget = _$(OBJECT, null);
+  const globalTarget = tv(OBJECT, null);
   const reflected = Symbol('reflected-ffi');
   const global = new ObjectHandler(globalTarget, null);
-  const fr = new FinalizationRegistry($ => {
-    weakRefs.delete($);
-    reflect('unref', $);
+  const fr = new FinalizationRegistry(v => {
+    weakRefs.delete(v);
+    reflect('unref', v);
   });
 
   return {

@@ -3,6 +3,8 @@ import {
   SYMBOL,
 } from './types.js';
 
+import { fromSymbol, toSymbol } from './symbol.js';
+
 export const isArray = Array.isArray;
 
 export const isView = ArrayBuffer.isView;
@@ -18,7 +20,7 @@ export const isView = ArrayBuffer.isView;
  * @param {any} value
  * @returns {TypeValue}
  */
-export const _$ = (type, value) => [type, value];
+export const tv = (type, value) => [type, value];
 
 export const identity = value => value;
 
@@ -56,25 +58,5 @@ export const fromKey = ([type, value]) => type === DIRECT ? value : fromSymbol(v
  * @returns {TypeValue}
  */
 export const toKey = value => typeof value === 'string' ?
-  _$(DIRECT, value) : _$(SYMBOL, toSymbol(value))
+  tv(DIRECT, value) : tv(SYMBOL, toSymbol(value))
 ;
-
-/**
- * Extract the value from a pair of type and value.
- * @param {string} name
- * @returns {symbol}
- */
-export const fromSymbol = name => name.startsWith('Symbol.') ?
-  Symbol[name.slice(name.indexOf('.') + 1)] :
-  Symbol.for(name)
-;
-
-/**
- * Create the name of a symbol.
- * @param {symbol} value
- * @returns {string}
- */
-export const toSymbol = value => {
-  const name = String(value).slice(7, -1);
-  return name.startsWith('Symbol.') || Symbol.keyFor(value) ? name : '';
-};

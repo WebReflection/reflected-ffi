@@ -1,4 +1,4 @@
-declare function _default({ reflect, transform, }?: RemoteOptions): {
+declare function _default({ reflect, transform, released, }?: RemoteOptions): {
     /**
      * The local global proxy reference.
      * @type {unknown}
@@ -42,4 +42,8 @@ export type RemoteOptions = {
      * The function used to transform local values into simpler references that the remote side can understand.
      */
     transform?: Function;
+    /**
+     * The function invoked when a reference is released.
+     */
+    released?: Function;
 };

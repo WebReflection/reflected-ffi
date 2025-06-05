@@ -14,18 +14,25 @@ import {
 } from './types.js';
 
 import {
+  fromSymbol,
+  toSymbol,
+} from './symbol.js';
+
+import {
   isArray,
   isView,
   fromKey,
   toKey,
-  toSymbol,
   identity,
   loopValues,
   object,
-  _$,
+  tv,
 } from './utils.js';
 
 import heap from './heap.js';
+
+const { getPrototypeOf } = Object;
+const { toStringTag } = Symbol;
 
 const toArray = view => {
   const arr = [];
@@ -34,8 +41,8 @@ const toArray = view => {
   return arr;
 };
 
-const toTag = (ref, name = ref[Symbol.toStringTag]) =>
-  name in globalThis ? name : toTag(Object.getPrototypeOf(ref));
+const toTag = (ref, name = ref[toStringTag]) =>
+  name in globalThis ? name : toTag(getPrototypeOf(ref));
 
 /**
  * @typedef {Object} LocalOptions Optional utilities used to orchestrate local <-> remote communication.
@@ -60,43 +67,46 @@ export default ({
   const fromValue = (value, cache = new Map) => {
     if (!isArray(value)) return value;
     const [t, v] = value;
-    if (t === OBJECT) {
-      if (v === null) return globalThis;
-      let cached = cache.get(value);
-      if (!cached) {
-        cached = v;
-        cache.set(value, v);
-        for (const k in v) v[k] = fromValue(v[k], cache);
+    switch (t) {
+      case OBJECT: {
+        if (v === null) return globalThis;
+        let cached = cache.get(value);
+        if (!cached) {
+          cached = v;
+          cache.set(value, v);
+          for (const k in v) v[k] = fromValue(v[k], cache);
+        }
+        return cached;
       }
-      return cached;
-    }
-    if (t === ARRAY) {
-      return cache.get(value) || (
-        cache.set(value, v),
-        fromValues(v, cache)
-      );
-    }
-    if (t === FUNCTION) {
-      let fn = weakRefs.get(v), wr = fn?.deref();
-      if (!fn) {
-        if (wr) fr.unregister(wr);
-        fn = function (...args) {
-          remote.apply(this, args);
-          // values reflected asynchronously are not passed stringified
-          // because it makes no sense to use Atomics and SharedArrayBuffer
-          // to transfer these ... yet these must reflect the current state
-          // on this local side of affairs.
-          for (let i = 0, length = args.length; i < length; i++)
-            args[i] = toValue(args[i]);
-          return reflect('apply', v, toValue(this), args).then(fromValue);
-        };
-        wr = new WeakRef(fn);
-        weakRefs.set(v, wr);
-        fr.register(fn, v, wr);
+      case ARRAY: {
+        return cache.get(value) || (
+          cache.set(value, v),
+          fromValues(v, cache)
+        );
       }
-      return fn;
+      case FUNCTION: {
+        let fn = weakRefs.get(v), wr = fn?.deref();
+        if (!fn) {
+          if (wr) fr.unregister(wr);
+          fn = function (...args) {
+            remote.apply(this, args);
+            // values reflected asynchronously are not passed stringified
+            // because it makes no sense to use Atomics and SharedArrayBuffer
+            // to transfer these ... yet these must reflect the current state
+            // on this local side of affairs.
+            for (let i = 0, length = args.length; i < length; i++)
+              args[i] = toValue(args[i]);
+            return reflect('apply', v, toValue(this), args).then(fromValue);
+          };
+          wr = new WeakRef(fn);
+          weakRefs.set(v, wr);
+          fr.register(fn, v, wr);
+        }
+        return fn;
+      }
+      case SYMBOL: return fromSymbol(v);
+      default: return (t & REMOTE) ? ref(v) : v;
     }
-    return (t & REMOTE) ? ref(v) : v;
   };
 
   // OBJECT, DIRECT, VIEW, REMOTE_ARRAY, REMOTE_OBJECT, REMOTE_FUNCTION, SYMBOL, BIGINT
@@ -114,15 +124,15 @@ export default ({
         if (value === globalThis) return globalTarget;
         const $ = transform(value);
         return (hasDirect && direct.has($)) ?
-          _$(DIRECT, $) : (
+          tv(DIRECT, $) : (
           isView($) ?
-            _$(VIEW, [toTag($), toArray($)]) :
-            _$(isArray($) ? REMOTE_ARRAY : REMOTE_OBJECT, id($))
+            tv(VIEW, [toTag($), toArray($)]) :
+            tv(isArray($) ? REMOTE_ARRAY : REMOTE_OBJECT, id($))
         );
       }
-      case 'function': return _$(REMOTE_FUNCTION, id(transform(value)));
-      case 'symbol': return _$(SYMBOL, toSymbol(value));
-      case 'bigint': return _$(BIGINT, value.toString());
+      case 'function': return tv(REMOTE_FUNCTION, id(transform(value)));
+      case 'symbol': return tv(SYMBOL, toSymbol(value));
+      case 'bigint': return tv(BIGINT, value.toString());
     }
     return value;
   };
@@ -133,7 +143,7 @@ export default ({
   const { clear, id, ref, unref } = heap();
 
   const weakRefs = new Map;
-  const globalTarget = _$(OBJECT, null);
+  const globalTarget = tv(OBJECT, null);
   const fr = new FinalizationRegistry($ => {
     weakRefs.delete($);
     reflect('unref', $);
