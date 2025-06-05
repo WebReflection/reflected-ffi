@@ -43,6 +43,7 @@
     "./package.json": "./package.json"
   },
   "scripts": {
+    "coverage": "mkdir -p ./coverage; c8 report --reporter=text-lcov > ./coverage/lcov.info",
     "test": "c8 node --expose-gc test/index.js",
     "types": "tsc --allowJs --checkJs --lib dom,esnext --module esnext --target esnext -d --emitDeclarationOnly --outDir ./types ./src/*.js"
   },
