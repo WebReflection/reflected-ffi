@@ -82,7 +82,7 @@ global.console.assert(fn(array) === array);
 global.console.assert(fn(123n) === 123n);
 
 console.assert(ArrayBuffer.isView(new global.Int32Array([1, 2, 3])));
-console.assert(!!global.import);
+console.assert((await global.import('../src/types.js')).DIRECT === 0);
 
 Object.defineProperty(global, 'test', { value: 123 });
 console.assert(global.test === 123);
