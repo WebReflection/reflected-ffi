@@ -12,14 +12,6 @@
     "README.md"
   ],
   "exports": {
-    "./events": {
-      "types": "./types/events.d.ts",
-      "import": "./src/events.js"
-    },
-    "./heap": {
-      "types": "./types/heap.d.ts",
-      "import": "./src/heap.js"
-    },
     "./local": {
       "types": "./types/local.d.ts",
       "import": "./src/local.js"
@@ -28,17 +20,33 @@
       "types": "./types/remote.d.ts",
       "import": "./src/remote.js"
     },
-    "./symbol": {
-      "types": "./types/symbol.d.ts",
-      "import": "./src/symbol.js"
-    },
     "./types": {
       "types": "./types/types.d.ts",
       "import": "./src/types.js"
     },
     "./utils": {
-      "types": "./types/utils.d.ts",
-      "import": "./src/utils.js"
+      "types": "./types/utils/index.d.ts",
+      "import": "./src/utils/index.js"
+    },
+    "./utils/events": {
+      "types": "./types/utils/events.d.ts",
+      "import": "./src/utils/events.js"
+    },
+    "./utils/global": {
+      "types": "./types/utils/global.d.ts",
+      "import": "./src/utils/global.js"
+    },
+    "./utils/heap": {
+      "types": "./types/utils/heap.d.ts",
+      "import": "./src/utils/heap.js"
+    },
+    "./utils/symbol": {
+      "types": "./types/utils/symbol.d.ts",
+      "import": "./src/utils/symbol.js"
+    },
+    "./utils/view": {
+      "types": "./types/utils/view.d.ts",
+      "import": "./src/utils/view.js"
     },
     "./package.json": "./package.json"
   },

@@ -1,9 +1,15 @@
+/** @type {Map<symbol, string>} */
 const symbols = new Map(
   Reflect.ownKeys(Symbol).map(
-    key => [Symbol[key], `@${key}`]
+    key => [Symbol[key], `@${String(key)}`]
   )
 );
 
+/**
+ * @param {symbol} value
+ * @param {string} description
+ * @returns {string}
+ */
 const asSymbol = (value, description) => (
   description === void 0 ? '?' :
   (Symbol.keyFor(value) === void 0 ? `!${description}` : `#${description}`)

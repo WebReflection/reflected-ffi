@@ -1,6 +1,8 @@
 import local from '../src/local.js';
 import remote from '../src/remote.js';
 import './symbol.js';
+import './global.js';
+import './view.js';
 
 const array = [1, 2, 3];
 
@@ -62,6 +64,8 @@ console.assert(!!fn(globalThis));
 console.assert(fn(global) === global);
 console.assert(fn(null) === null);
 console.assert(fn(Symbol.iterator) === Symbol.iterator);
+console.assert(fn(new ArrayBuffer(12)) instanceof ArrayBuffer);
+console.assert(fn(new Int32Array([1,2,3])) instanceof Int32Array);
 
 console.assert(fn(Function) === fn(Function));
 

@@ -1,7 +1,7 @@
 import {
   DIRECT,
   SYMBOL,
-} from './types.js';
+} from '../types.js';
 
 import { fromSymbol, toSymbol } from './symbol.js';
 

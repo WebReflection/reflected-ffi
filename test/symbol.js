@@ -1,4 +1,4 @@
-import { fromSymbol, toSymbol } from '../src/symbol.js';
+import { fromSymbol, toSymbol } from '../src/utils/symbol.js';
 
 const is = (a, b) => {
   if (!Object.is(a, b)) {

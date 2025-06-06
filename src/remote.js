@@ -7,6 +7,7 @@ import {
   SYMBOL,
   BIGINT,
   VIEW,
+  BUFFER,
 
   REMOTE_OBJECT,
   REMOTE_ARRAY,
@@ -15,7 +16,16 @@ import {
 import {
   fromSymbol,
   toSymbol,
-} from './symbol.js';
+} from './utils/symbol.js';
+
+import {
+  fromBuffer,
+  fromView,
+} from './utils/typed.js';
+
+import {
+  toName,
+} from './utils/global.js';
 
 import {
   isArray,
@@ -26,17 +36,11 @@ import {
   loopValues,
   object,
   tv,
-} from './utils.js';
+} from './utils/index.js';
 
-import heap from './heap.js';
+import heap from './utils/heap.js';
 
-const { getPrototypeOf, preventExtensions } = Object;
-const { toString } = object;
-
-/* c8 ignore start */
-const toName = (ref, name = toString.call(ref).slice(8, -1)) =>
-  name in globalThis ? name : toName(getPrototypeOf(ref) || object);
-/* c8 ignore stop */
+const { preventExtensions } = Object;
 
 /**
  * @typedef {Object} RemoteOptions Optional utilities used to orchestrate local <-> remote communication.
@@ -66,7 +70,8 @@ export default ({
       case SYMBOL: return fromSymbol(v);
       case BIGINT: return BigInt(v);
       case DIRECT: return v;
-      case VIEW: return new globalThis[v[0]](v[1]);
+      case VIEW: return fromView(v);
+      case BUFFER: return fromBuffer(v);
       // there is no other case
     }
   };

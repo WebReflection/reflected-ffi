@@ -7,6 +7,7 @@ import {
   SYMBOL,
   BIGINT,
   VIEW,
+  BUFFER,
 
   REMOTE_OBJECT,
   REMOTE_ARRAY,
@@ -16,7 +17,12 @@ import {
 import {
   fromSymbol,
   toSymbol,
-} from './symbol.js';
+} from './utils/symbol.js';
+
+import {
+  toBuffer,
+  toView,
+} from './utils/typed.js';
 
 import {
   isArray,
@@ -27,24 +33,9 @@ import {
   loopValues,
   object,
   tv,
-} from './utils.js';
+} from './utils/index.js';
 
-import heap from './heap.js';
-
-const { getPrototypeOf } = Object;
-const { toStringTag } = Symbol;
-
-const toArray = view => {
-  const arr = [];
-  for (let i = 0, length = view.length; i < length; i++)
-    arr[i] = view[i];
-  return arr;
-};
-
-/* c8 ignore start */
-const toTag = (ref, name = ref[toStringTag]) =>
-  name in globalThis ? name : toTag(getPrototypeOf(ref));
-/* c8 ignore stop */
+import heap from './utils/heap.js';
 
 /**
  * @typedef {Object} LocalOptions Optional utilities used to orchestrate local <-> remote communication.
@@ -118,7 +109,7 @@ export default ({
     }
   };
 
-  // OBJECT, DIRECT, VIEW, REMOTE_ARRAY, REMOTE_OBJECT, REMOTE_FUNCTION, SYMBOL, BIGINT
+  // OBJECT, DIRECT, VIEW, BUFFER, REMOTE_ARRAY, REMOTE_OBJECT, REMOTE_FUNCTION, SYMBOL, BIGINT
   /**
    * Converts values into TypeValue pairs when these
    * are not JSON compatible (symbol, bigint) or
@@ -135,8 +126,11 @@ export default ({
         return (hasDirect && direct.has($)) ?
           tv(DIRECT, $) : (
           isView($) ?
-            tv(VIEW, [toTag($), toArray($)]) :
-            tv(isArray($) ? REMOTE_ARRAY : REMOTE_OBJECT, id($))
+            tv(VIEW, toView($)) : (
+              $ instanceof ArrayBuffer ?
+                tv(BUFFER, toBuffer($)) :
+                tv(isArray($) ? REMOTE_ARRAY : REMOTE_OBJECT, id($))
+            )
         );
       }
       case 'function': return tv(REMOTE_FUNCTION, id(transform(value)));

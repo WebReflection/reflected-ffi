@@ -6,6 +6,7 @@ export const FUNCTION  = 1 << 3;
 export const SYMBOL    = 1 << 4;
 export const BIGINT    = 1 << 5;
 export const VIEW      = 1 << 6;
+export const BUFFER    = 1 << 7;
 
 export const REMOTE_OBJECT   = REMOTE | OBJECT;
 export const REMOTE_ARRAY    = REMOTE | ARRAY;
