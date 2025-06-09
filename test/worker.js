@@ -1,7 +1,9 @@
 import remote from '../src/remote.js';
+import { decoder } from '../src/buffer/decoder.js';
 
-const sab = new SharedArrayBuffer(1 << 26);
+const sab = new SharedArrayBuffer(8, { maxByteLength: 1 << 26 });
 const i32a = new Int32Array(sab);
+const decode = decoder({ dataView: new DataView(sab, 4) });
 
 const { global, direct, reflect } = remote({
   reflect(...args) {
@@ -9,16 +11,7 @@ const { global, direct, reflect } = remote({
     if (args[0] !== 'unref') {
       Atomics.wait(i32a, 0);
       i32a[0] = 0;
-      const length = i32a[1];
-      if (length) {
-        const ui16a = new Uint16Array(sab, 8, length);
-        const { fromCharCode } = String;
-        let str = '';
-        for (let i = 0; i < length; i += 2048)
-          str += fromCharCode.apply(null, ui16a.subarray(i, i + 2048));
-        return JSON.parse(str);
-      }
-      return void 0;
+      return decode(i32a.buffer);
     }
   },
 });
@@ -70,4 +63,4 @@ console.log(i16a.length);
 
 console.log({ check: global.check }, 'check' in global);
 global.check = void 0;
-console.log({ check: global.check }, 'check' in global);
+console.log({ check: global.check }, 'check' in global, global.check);

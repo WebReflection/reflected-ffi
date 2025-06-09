@@ -12,6 +12,14 @@
     "README.md"
   ],
   "exports": {
+    "./encoder": {
+      "types": "./types/buffer/encoder.d.ts",
+      "import": "./src/buffer/encoder.js"
+    },
+    "./decoder": {
+      "types": "./types/buffer/decoder.d.ts",
+      "import": "./src/buffer/decoder.js"
+    },
     "./local": {
       "types": "./types/local.d.ts",
       "import": "./src/local.js"
@@ -53,7 +61,7 @@
   "scripts": {
     "coverage": "mkdir -p ./coverage; c8 report --reporter=text-lcov > ./coverage/lcov.info",
     "test": "c8 node --expose-gc test/index.js",
-    "types": "tsc --allowJs --checkJs --lib dom,esnext --module esnext --target esnext -d --emitDeclarationOnly --outDir ./types ./src/*.js"
+    "types": "tsc --allowJs --checkJs --lib dom,esnext --module esnext --target esnext -d --emitDeclarationOnly --outDir ./types ./src/*/*.js"
   },
   "devDependencies": {
     "c8": "^10.1.3",
