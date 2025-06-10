@@ -8,7 +8,7 @@ const decode = decoder({ dataView: new DataView(sab, 4) });
 const { global, direct, gather, assign, reflect } = remote({
   reflect(...args) {
     postMessage([i32a, args]);
-    if (args[0] !== 'unref') {
+    if (args[0]) {
       Atomics.wait(i32a, 0);
       i32a[0] = 0;
       return decode(i32a.buffer);

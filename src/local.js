@@ -1,6 +1,26 @@
 import DEBUG from './utils/debug.js';
 
 import {
+  UNREF,
+  ASSIGN,
+  GATHER,
+
+  APPLY,
+  CONSTRUCT,
+  DEFINE_PROPERTY,
+  DELETE_PROPERTY,
+  GET,
+  GET_OWN_PROPERTY_DESCRIPTOR,
+  GET_PROTOTYPE_OF,
+  HAS,
+  IS_EXTENSIBLE,
+  OWN_KEYS,
+  PREVENT_EXTENSIONS,
+  SET,
+  SET_PROTOTYPE_OF,
+} from './utils/traps.js';
+
+import {
   DIRECT,
   OBJECT,
   ARRAY,
@@ -98,7 +118,7 @@ export default ({
             for (let i = 0, length = args.length; i < length; i++)
               args[i] = toValue(args[i]);
 
-            const result = reflect('apply', v, toValue(this), args);
+            const result = reflect(APPLY, v, toValue(this), args);
             /* c8 ignore start */
             return result instanceof Promise ? result.then(fromValue) : fromValue(result);
             /* c8 ignore stop */
@@ -155,7 +175,7 @@ export default ({
   const globalTarget = tv(OBJECT, null);
   const fr = new FinalizationRegistry(v => {
     weakRefs.delete(v);
-    reflect('unref', v);
+    reflect(UNREF, v);
   });
 
   let hasDirect = false, direct;
@@ -191,25 +211,25 @@ export default ({
      */
     reflect: (method, uid, ...args) => {
       /* c8 ignore start */
-      if (DEBUG) console.debug(method === 'unref' ? 'GC' : 'ROUNDTRIP');
+      if (DEBUG) console.debug(method === UNREF ? 'GC' : 'ROUNDTRIP');
       /* c8 ignore stop */
       const isGlobal = uid === null;
       const target = isGlobal ? globalThis : ref(uid);
       // the order is by most common use cases
       switch (method) {
-        case 'get': {
+        case GET: {
           const key = fromKey(args[0]);
           return toValue(isGlobal && key === 'import' ? module : Reflect.get(target, key));
         }
-        case 'apply': {
+        case APPLY: {
           const map = new Map;
           return toValue(Reflect.apply(target, fromValue(args[0], map), fromValues(args[1], map)));
         }
-        case 'set': return Reflect.set(target, fromKey(args[0]), fromValue(args[1]));
-        case 'has': return Reflect.has(target, fromKey(args[0]));
-        case 'ownKeys': return toKeys(Reflect.ownKeys(target), weakRefs);
-        case 'construct': return toValue(Reflect.construct(target, fromValues(args[0])));
-        case 'getOwnPropertyDescriptor': {
+        case SET: return Reflect.set(target, fromKey(args[0]), fromValue(args[1]));
+        case HAS: return Reflect.has(target, fromKey(args[0]));
+        case OWN_KEYS: return toKeys(Reflect.ownKeys(target), weakRefs);
+        case CONSTRUCT: return toValue(Reflect.construct(target, fromValues(args[0])));
+        case GET_OWN_PROPERTY_DESCRIPTOR: {
           const descriptor = Reflect.getOwnPropertyDescriptor(target, fromKey(args[0]));
           if (descriptor) {
             for (const k in descriptor)
@@ -217,22 +237,23 @@ export default ({
           }
           return descriptor;
         }
-        case 'defineProperty': return Reflect.defineProperty(target, fromKey(args[0]), fromValue(args[1]));
-        case 'deleteProperty': return Reflect.deleteProperty(target, fromKey(args[0]));
-        case 'getPrototypeOf': return toValue(Reflect.getPrototypeOf(target));
-        case 'setPrototypeOf': return Reflect.setPrototypeOf(target, fromValue(args[0]));
-        case 'assign': {
+        case DEFINE_PROPERTY: return Reflect.defineProperty(target, fromKey(args[0]), fromValue(args[1]));
+        case DELETE_PROPERTY: return Reflect.deleteProperty(target, fromKey(args[0]));
+        case GET_PROTOTYPE_OF: return toValue(Reflect.getPrototypeOf(target));
+        case SET_PROTOTYPE_OF: return Reflect.setPrototypeOf(target, fromValue(args[0]));
+        case ASSIGN: {
           assign(target, fromValue(args[0]));
           return;
         }
-        case 'gather': {
+        case GATHER: {
           args = fromKeys(args[0], weakRefs);
           for (let i = 0, length = args.length; i < length; i++)
             args[i] = toValue(target[args[i]]);
           return args;
         }
-        case 'unref': return unref(uid);
-        default: return Reflect[method](target);
+        case UNREF: return unref(uid);
+        case IS_EXTENSIBLE: return Reflect.isExtensible(target);
+        case PREVENT_EXTENSIONS: return Reflect.preventExtensions(target);
       }
     },
 

@@ -22,6 +22,7 @@ const { global } = there;
 
 global.trapped = function trap() {};
 
+console.assert(Object.isExtensible(global.Array));
 console.assert('isArray' in global.Array);
 console.assert(global.Array.isArray([]));
 console.assert(global.Array.isArray(new global.Array));

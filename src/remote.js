@@ -1,4 +1,24 @@
 import {
+  UNREF,
+  ASSIGN,
+  GATHER,
+
+  APPLY,
+  CONSTRUCT,
+  DEFINE_PROPERTY,
+  DELETE_PROPERTY,
+  GET,
+  GET_OWN_PROPERTY_DESCRIPTOR,
+  GET_PROTOTYPE_OF,
+  HAS,
+  IS_EXTENSIBLE,
+  OWN_KEYS,
+  PREVENT_EXTENSIONS,
+  SET,
+  SET_PROTOTYPE_OF,
+} from './utils/traps.js';
+
+import {
   DIRECT,
   REMOTE,
   OBJECT,
@@ -147,28 +167,28 @@ export default ({
   class Handler {
     constructor(_) { this._ = _ }
 
-    get(_, key) { return fromValue(reflect('get', this._, toKey(key))) }
-    set(_, key, value) { return reflect('set', this._, toKey(key), toValue(value)) }
-    ownKeys(_) { return fromKeys(reflect('ownKeys', this._), weakRefs) }
+    get(_, key) { return fromValue(reflect(GET, this._, toKey(key))) }
+    set(_, key, value) { return reflect(SET, this._, toKey(key), toValue(value)) }
+    ownKeys(_) { return fromKeys(reflect(OWN_KEYS, this._), weakRefs) }
     getOwnPropertyDescriptor(_, key) {
-      const descriptor = fromValue(reflect('getOwnPropertyDescriptor', this._, toKey(key)));
+      const descriptor = fromValue(reflect(GET_OWN_PROPERTY_DESCRIPTOR, this._, toKey(key)));
       if (descriptor) {
         for (const k in descriptor)
           descriptor[k] = fromValue(descriptor[k]);
       }
       return descriptor;
     }
-    defineProperty(_, key, descriptor) { return reflect('defineProperty', this._, toKey(key), toValue(descriptor)) }
-    deleteProperty(_, key) { return reflect('deleteProperty', this._, toKey(key)) }
-    getPrototypeOf(_) { return fromValue(reflect('getPrototypeOf', this._)) }
-    setPrototypeOf(_, value) { return reflect('setPrototypeOf', this._, toValue(value)) }
-    isExtensible(_) { return reflect('isExtensible', this._) }
-    preventExtensions(target) { return preventExtensions(target) && reflect('preventExtensions', this._) }
+    defineProperty(_, key, descriptor) { return reflect(DEFINE_PROPERTY, this._, toKey(key), toValue(descriptor)) }
+    deleteProperty(_, key) { return reflect(DELETE_PROPERTY, this._, toKey(key)) }
+    getPrototypeOf(_) { return fromValue(reflect(GET_PROTOTYPE_OF, this._)) }
+    setPrototypeOf(_, value) { return reflect(SET_PROTOTYPE_OF, this._, toValue(value)) }
+    isExtensible(_) { return reflect(IS_EXTENSIBLE, this._) }
+    preventExtensions(target) { return preventExtensions(target) && reflect(PREVENT_EXTENSIONS, this._) }
   }
 
   const has = (_, $, prop) => prop === reflected ?
     !!(reference = _) :
-    reflect('has', $, toKey(prop))
+    reflect(HAS, $, toKey(prop))
   ;
 
   class ObjectHandler extends Handler {
@@ -196,11 +216,11 @@ export default ({
     }
 
     has(target, prop) { return has(target(), this._, prop) }
-    construct(_, args) { return fromValue(reflect('construct', this._, toValues(args))) }
+    construct(_, args) { return fromValue(reflect(CONSTRUCT, this._, toValues(args))) }
 
     apply(_, self, args) {
       const map = new Map;
-      return fromValue(reflect('apply', this._, toValue(self, map), toValues(args, map)));
+      return fromValue(reflect(APPLY, this._, toValue(self, map), toValues(args, map)));
     }
   }
 
@@ -213,7 +233,7 @@ export default ({
   const global = new ObjectHandler(globalTarget, null);
   const fr = new FinalizationRegistry(v => {
     weakRefs.delete(v);
-    reflect('unref', v);
+    reflect(UNREF, v);
   });
 
   return {
@@ -225,7 +245,7 @@ export default ({
 
     /** @type {typeof assign} */
     assign: (target, ...sources) => reflected in target ?
-      (reflect('assign', reference[1], toValue(assign({}, ...sources))), target) :
+      (reflect(ASSIGN, reference[1], toValue(assign({}, ...sources))), target) :
       assign(target, ...sources)
     ,
 
@@ -253,7 +273,7 @@ export default ({
     gather: (target, ...keys) => {
       let asValue = fromValue;
       if (reflected in target)
-        keys = reflect('gather', reference[1], toKeys(keys, weakRefs));
+        keys = reflect(GATHER, reference[1], toKeys(keys, weakRefs));
       else
         asValue = key => target[key];
       for (let i = 0, length = keys.length; i < length; i++)
@@ -285,13 +305,13 @@ export default ({
      */
     reflect: (method, uid, ...args) => {
       switch (method) {
-        case 'apply': {
+        case APPLY: {
           const [context, params] = args;
           for (let i = 0, length = params.length; i < length; i++)
             params[i] = fromValue(params[i]);
           return toValue(Reflect.apply(ref(uid), fromValue(context), params));
         }
-        case 'unref': {
+        case UNREF: {
           released(ref(uid));
           return unref(uid);
         }
