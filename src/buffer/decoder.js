@@ -26,9 +26,9 @@ const asBUFFER = (dv, length, offset) => arrayBuffer(
 );
 
 const asDIRECT = (dv, length, offset) => {
-  const buffer = new ArrayBuffer(length);
-  new Uint8Array(buffer).set(new Uint8Array(dv.buffer, offset, length));
-  return buffer;
+  const view = new Uint8Array(length);
+  view.set(new Uint8Array(dv.buffer, offset, length));
+  return view;
 };
 
 const asSTRING = (dv, length, offset) => {
@@ -55,7 +55,16 @@ export const decode = (buffer, options) => {
     case BUFFER: return asBUFFER(dv, dv.getUint32(1, true), 5);
     case VIEW: return asVIEW(dv, dv.getUint32(1, true), 5);
     case STRING: return asSTRING(dv, dv.getUint32(1, true), 5);
-    case DIRECT: return [DIRECT, options.direct(asDIRECT(dv, dv.getUint32(1, true), 5))];
+    case DIRECT: {
+      const direct = options?.direct;
+      const length = dv.getUint32(1, true);
+      return [
+        DIRECT,
+        direct ?
+          direct.call(options, asDIRECT(dv, length, 5)) :
+          asSTRING(dv, length, 5)
+      ];
+    }
     default: {
       return [type, dv.getInt32(1, true)];
     }

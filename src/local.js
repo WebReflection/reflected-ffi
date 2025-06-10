@@ -85,17 +85,17 @@ export default ({
           /* c8 ignore start */
           if (wr) fr.unregister(wr);
           /* c8 ignore stop */
-          fn = function () {
-            remote.apply(this, arguments);
+          fn = function (...args) {
+            remote.apply(this, args);
 
             // values reflected asynchronously are not passed stringified
             // because it makes no sense to use Atomics and SharedArrayBuffer
             // to transfer these ... yet these must reflect the current state
             // on this local side of affairs.
-            for (let i = 0, length = arguments.length; i < length; i++)
-              arguments[i] = toValue(arguments[i]);
+            for (let i = 0, length = args.length; i < length; i++)
+              args[i] = toValue(args[i]);
 
-            const result = reflect('apply', v, toValue(this), arguments);
+            const result = reflect('apply', v, toValue(this), args);
             /* c8 ignore start */
             return result instanceof Promise ? result.then(fromValue) : fromValue(result);
             /* c8 ignore stop */

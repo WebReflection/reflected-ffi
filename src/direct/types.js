@@ -1,6 +1,7 @@
 let i = 0;
 
 export const FALSE = i++;
+export const TRUE = i++;
 
 export const UNDEFINED = i++;
 export const NULL = i++;
@@ -21,10 +22,11 @@ export const SYMBOL = i++;
 export const ARRAY = i++;
 export const BUFFER = i++;
 export const DATE = i++;
+export const ERROR = i++;
 export const MAP = i++;
 export const OBJECT = i++;
 export const REGEXP = i++;
 export const SET = i++;
 export const VIEW = i++;
 
-export const TRUE = i++;
+export const RECURSION = i++;
