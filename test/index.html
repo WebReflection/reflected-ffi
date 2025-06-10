@@ -4,8 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script type="module">
+    import './encoder.js';
     import nextResolver from 'https://esm.run/next-resolver';
     import local from '../src/local.js';
+    import { encode } from '../src/buffer/encoder.js';
+
+    const { isArray } = Array;
 
     globalThis.testArray = [];
     globalThis.testObject = {};
@@ -15,7 +19,8 @@
     const waiting = new Map;
     const w = new Worker('./worker.js', { type: 'module' });
     const { direct, reflect } = local({
-      reflect: (...args) => {
+      buffer: true,
+      reflect(...args) {
         const [id, promise] = next();
         w.postMessage([id, args]);
         return promise;
@@ -28,15 +33,7 @@
       else {
         const result = reflect(...args);
         if (args[0] !== 'unref') {
-          if (result === void 0)
-            i32a[1] = 0;
-          else {
-            const json = JSON.stringify(result);
-            const { length } = json;
-            const ui16a = new Uint16Array(i32a.buffer, 8, length);
-            for (let i = 0; i < length; i++) ui16a[i] = json.charCodeAt(i);
-            i32a[1] = length;
-          }
+          encode(result, i32a.buffer, { byteOffset: 4 });
           i32a[0] = 1;
           Atomics.notify(i32a, 0);
         }

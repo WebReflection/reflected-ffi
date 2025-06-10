@@ -43,6 +43,7 @@ import heap from './utils/heap.js';
  * @property {Function} [transform=identity] The function used to transform local values into simpler references that the remote side can understand.
  * @property {Function} [remote=identity] The function used to intercept remote invokes *before* these happen. Usable to sync `events` or do other tasks.
  * @property {Function} [module] The function used to import modules when remote asks to `import(...)` something.
+ * @property {boolean} [buffer=false] Optionally allows direct buffer serialization breaking JSON compatibility. This requires the `encoder` on the local side and the `decoder` on the remote side.
  */
 
 /**
@@ -54,6 +55,7 @@ export default ({
   transform = identity,
   remote = identity,
   module = name => import(name),
+  buffer = false,
 } = object) => {
   // received values arrive via postMessage so are compatible
   // with the structured clone algorithm
@@ -83,17 +85,17 @@ export default ({
           /* c8 ignore start */
           if (wr) fr.unregister(wr);
           /* c8 ignore stop */
-          fn = function (...args) {
-            remote.apply(this, args);
+          fn = function () {
+            remote.apply(this, arguments);
 
             // values reflected asynchronously are not passed stringified
             // because it makes no sense to use Atomics and SharedArrayBuffer
             // to transfer these ... yet these must reflect the current state
             // on this local side of affairs.
-            for (let i = 0, length = args.length; i < length; i++)
-              args[i] = toValue(args[i]);
+            for (let i = 0, length = arguments.length; i < length; i++)
+              arguments[i] = toValue(arguments[i]);
 
-            const result = reflect('apply', v, toValue(this), args);
+            const result = reflect('apply', v, toValue(this), arguments);
             /* c8 ignore start */
             return result instanceof Promise ? result.then(fromValue) : fromValue(result);
             /* c8 ignore stop */
@@ -126,9 +128,9 @@ export default ({
         return (hasDirect && direct.has($)) ?
           tv(DIRECT, $) : (
           isView($) ?
-            tv(VIEW, toView($)) : (
+            tv(VIEW, toView($, buffer)) : (
               $ instanceof ArrayBuffer ?
-                tv(BUFFER, toBuffer($)) :
+                tv(BUFFER, toBuffer($, buffer)) :
                 tv(isArray($) ? REMOTE_ARRAY : REMOTE_OBJECT, id($))
             )
         );

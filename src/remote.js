@@ -67,9 +67,9 @@ export default ({
     if (t & REMOTE) return asProxy(value, t, v);
     switch (t) {
       case OBJECT: return global;
+      case DIRECT: return v;
       case SYMBOL: return fromSymbol(v);
       case BIGINT: return BigInt(v);
-      case DIRECT: return v;
       case VIEW: return fromView(v);
       case BUFFER: return fromBuffer(v);
       // there is no other case
@@ -94,7 +94,7 @@ export default ({
                 a[i] = toValue($[i], cache);
               return cached;
             }
-            if (!isView($) && toName($) === 'Object') {
+            if (!isView($) && !($ instanceof ArrayBuffer) && toName($) === 'Object') {
               const o = {};
               cached = tv(OBJECT, o);
               cache.set(value, cached);
