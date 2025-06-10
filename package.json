@@ -59,8 +59,11 @@
     "./package.json": "./package.json"
   },
   "scripts": {
+    "build": "npm run no-debug && npm run types",
     "coverage": "mkdir -p ./coverage; c8 report --reporter=text-lcov > ./coverage/lcov.info",
-    "test": "c8 node --expose-gc test/index.js",
+    "debug": "echo 'export default true;' > ./src/utils/debug.js",
+    "no-debug": "echo 'export default false;' > ./src/utils/debug.js",
+    "test": "npm run no-debug && c8 node --expose-gc test/index.js",
     "types": "tsc --allowJs --checkJs --lib dom,esnext --module esnext --target esnext -d --emitDeclarationOnly --outDir ./types ./src/*/*.js"
   },
   "devDependencies": {

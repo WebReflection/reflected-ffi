@@ -28,6 +28,7 @@ import {
 } from './utils/global.js';
 
 import {
+  assign,
   isArray,
   isView,
   fromKey,
@@ -59,6 +60,7 @@ export default ({
   released = identity,
 } = object) => {
   const fromKeys = loopValues(fromKey);
+  const toKeys = loopValues(toKey);
 
   // OBJECT, DIRECT, VIEW, REMOTE_ARRAY, REMOTE_OBJECT, REMOTE_FUNCTION, SYMBOL, BIGINT
   const fromValue = value => {
@@ -221,6 +223,12 @@ export default ({
      */
     global,
 
+    /** @type {typeof assign} */
+    assign: (target, ...sources) => reflected in target ?
+      (reflect('assign', reference[1], toValue(assign({}, ...sources))), target) :
+      assign(target, ...sources)
+    ,
+
     /**
      * Alows local references to be passed directly to the remote receiver,
      * either as copy or serliazied values (it depends on the implementation).
@@ -235,6 +243,22 @@ export default ({
       }
       direct.add(value);
       return value;
+    },
+
+    /**
+     * @param {object} target
+     * @param  {...(string|symbol)} keys
+     * @returns {any[]}
+     */
+    gather: (target, ...keys) => {
+      let asValue = fromValue;
+      if (reflected in target)
+        keys = reflect('gather', reference[1], toKeys(keys, weakRefs));
+      else
+        asValue = key => target[key];
+      for (let i = 0, length = keys.length; i < length; i++)
+        keys[i] = asValue(keys[i]);
+      return keys;
     },
 
     /**

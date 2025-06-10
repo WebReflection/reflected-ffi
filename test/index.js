@@ -94,6 +94,14 @@ global.setTimeout((a, b, c) => console.assert(a === 1 && b === 2 && c === 3), 10
 let arr = new global.Array(1, 2, 3);
 fn(here.direct([arr, arr]));
 
+there.assign(global, { value: 1 });
+console.assert(there.gather(global, 'value')[0] === 1);
+console.assert(there.gather(global, 'value').length === 1);
+
+obj = there.assign({}, { value: 1 });
+console.assert(there.gather(obj, 'value')[0] === 1);
+console.assert(there.gather(obj, 'value').length === 1);
+
 obj = null;
 global.trapped = null;
 

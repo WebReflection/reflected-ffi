@@ -1,3 +1,5 @@
+import DEBUG from './utils/debug.js';
+
 import {
   DIRECT,
   OBJECT,
@@ -25,6 +27,7 @@ import {
 } from './utils/typed.js';
 
 import {
+  assign,
   isArray,
   isView,
   fromKey,
@@ -143,6 +146,7 @@ export default ({
   };
 
   const fromValues = loopValues(fromValue);
+  const fromKeys = loopValues(fromKey);
   const toKeys = loopValues(toKey);
 
   const { clear, id, ref, unref } = heap();
@@ -166,6 +170,9 @@ export default ({
      */
     direct(value) {
       if (!hasDirect) {
+        /* c8 ignore start */
+        if (DEBUG) console.debug('DIRECT');
+        /* c8 ignore stop */
         hasDirect = true;
         direct = new WeakSet;
       }
@@ -183,6 +190,9 @@ export default ({
      * @returns
      */
     reflect: (method, uid, ...args) => {
+      /* c8 ignore start */
+      if (DEBUG) console.debug(method === 'unref' ? 'GC' : 'ROUNDTRIP');
+      /* c8 ignore stop */
       const isGlobal = uid === null;
       const target = isGlobal ? globalThis : ref(uid);
       // the order is by most common use cases
@@ -211,6 +221,16 @@ export default ({
         case 'deleteProperty': return Reflect.deleteProperty(target, fromKey(args[0]));
         case 'getPrototypeOf': return toValue(Reflect.getPrototypeOf(target));
         case 'setPrototypeOf': return Reflect.setPrototypeOf(target, fromValue(args[0]));
+        case 'assign': {
+          assign(target, fromValue(args[0]));
+          return;
+        }
+        case 'gather': {
+          args = fromKeys(args[0], weakRefs);
+          for (let i = 0, length = args.length; i < length; i++)
+            args[i] = toValue(target[args[i]]);
+          return args;
+        }
         case 'unref': return unref(uid);
         default: return Reflect[method](target);
       }

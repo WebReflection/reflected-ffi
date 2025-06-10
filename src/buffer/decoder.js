@@ -56,14 +56,10 @@ export const decode = (buffer, options) => {
     case VIEW: return asVIEW(dv, dv.getUint32(1, true), 5);
     case STRING: return asSTRING(dv, dv.getUint32(1, true), 5);
     case DIRECT: {
-      const direct = options?.direct;
+      const indirect = !options?.direct;
       const length = dv.getUint32(1, true);
-      return [
-        DIRECT,
-        direct ?
-          direct.call(options, asDIRECT(dv, length, 5)) :
-          asSTRING(dv, length, 5)
-      ];
+      const result = indirect ? asSTRING(dv, length, 5) : asDIRECT(dv, length, 5);
+      return [DIRECT, indirect ? result : options.direct(result)];
     }
     default: {
       return [type, dv.getInt32(1, true)];

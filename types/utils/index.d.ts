@@ -1,3 +1,9 @@
+export const assign: {
+    <T extends {}, U>(target: T, source: U): T & U;
+    <T extends {}, U, V>(target: T, source1: U, source2: V): T & U & V;
+    <T extends {}, U, V, W>(target: T, source1: U, source2: V, source3: W): T & U & V & W;
+    (target: object, ...sources: any[]): any;
+};
 export const isArray: (arg: any) => arg is any[];
 export const isView: (arg: any) => arg is ArrayBufferView;
 export function tv(type: number, value: any): TypeValue;
