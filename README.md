@@ -135,8 +135,8 @@ remote.onmessage = ({ data: [i32a, [trap, ...rest]] }) => {
   // retrieve the result
   const result = reflect(trap, ...rest);
 
-  // ignore `unref` as it doesn't need Atomics
-  if (trap === 'unref') return;
+  // ignore `unref` (its value is `0`) as it doesn't need Atomics
+  if (!trap) return;
 
   // store it into the SharedArrayBuffer
   encodeInto(reflect(...args), i32a.buffer);
