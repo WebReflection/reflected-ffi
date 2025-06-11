@@ -272,8 +272,10 @@ export default ({
         }
         case GATHER: {
           args = fromKeys(args[0], weakRefs);
-          for (let i = 0, length = args.length; i < length; i++)
-            args[i] = toValue(target[args[i]]);
+          for (let k, i = 0, length = args.length; i < length; i++) {
+            k = args[i];
+            args[i] = toValue(typeof k === 'string' ? query(target, k) : target[k]);
+          }
           return args;
         }
         case QUERY: return toValue(query(target, args[0]));

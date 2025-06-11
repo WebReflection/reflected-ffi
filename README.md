@@ -196,6 +196,8 @@ const { gather, global } = remote({ ... });
 const [navigator, location] = gather(global, 'navigator', 'location');
 ```
 
+Please note that each *prop* passes through the [query](#querytarget-path) resolver so that `gather(global, "location.href"`), as example, would return the expected value at index `0`.
+
 
 #### evaluate(callback, ...args)
 
