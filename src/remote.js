@@ -3,6 +3,7 @@ import {
   ASSIGN,
   EVALUATE,
   GATHER,
+  QUERY,
 
   APPLY,
   CONSTRUCT,
@@ -61,6 +62,8 @@ import {
 } from './utils/index.js';
 
 import toJSONCallback from './utils/to-json-callback.js';
+
+import query from './utils/query.js';
 
 import heap from './utils/heap.js';
 
@@ -262,7 +265,7 @@ export default ({
     isProxy,
 
     /** @type {typeof assign} */
-    assign: (target, ...sources) => {
+    assign(target, ...sources) {
       const asProxy = isProxy(target);
       const assignment = assign(asProxy ? {} : target, ...sources);
       if (asProxy) reflect(ASSIGN, reference[1], toValue(assignment));
@@ -276,7 +279,7 @@ export default ({
      * @param {T} value
      * @returns {T}
      */
-    direct: value => {
+    direct(value) {
       if (indirect) {
         indirect = false;
         direct = new WeakSet;
@@ -302,13 +305,25 @@ export default ({
      * @param  {...(string|symbol)} keys
      * @returns {any[]}
      */
-    gather: (target, ...keys) => {
+    gather(target, ...keys) {
       const asProxy = isProxy(target);
       const asValue = asProxy ? fromValue : (key => target[key]);
       if (asProxy) keys = reflect(GATHER, reference[1], toKeys(keys, weakRefs));
       for (let i = 0; i < keys.length; i++) keys[i] = asValue(keys[i]);
       return keys;
     },
+
+    /**
+     * Queries the given target for the given path.
+     * @param {any} target
+     * @param {string} path
+     * @returns {any}
+     */
+    query: (target, path) => (
+      isProxy(target) ?
+        fromValue(reflect(QUERY, reference[1], path)) :
+        query(target, path)
+    ),
 
     /**
      * The callback needed to resolve any local call. Currently only `apply` and `unref` are supported.
@@ -319,7 +334,7 @@ export default ({
      * @param  {...any} args
      * @returns
      */
-    reflect: (method, uid, ...args) => {
+    reflect(method, uid, ...args) {
       switch (method) {
         case APPLY: {
           const [context, params] = args;

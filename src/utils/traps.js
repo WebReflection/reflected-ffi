@@ -5,6 +5,7 @@ export const UNREF = i++;
 export const ASSIGN = i++;
 export const EVALUATE = i++;
 export const GATHER = i++;
+export const QUERY = i++;
 
 // traps
 export const APPLY = i++;

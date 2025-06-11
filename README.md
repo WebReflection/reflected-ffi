@@ -153,3 +153,84 @@ globalThis.directObject = () => {
 ```
 
 The *remote* counter-setup in this case can invoke `local.directObject()` and receive an object literal that won't belong, or exist, on the *local* context as it was never held to be addressed in the future from the *remote* context.
+
+### Remote Extra Utilities
+
+This project does everything it can to be as fast as possible but it should be clear from the architecture graph that a roundtrip would inevitably add some latency where, even if this is around `0.x` ms, it might affect performance if *60 FPS* is the target from a worker / *remote* driver.
+
+As an attempt to help performance when it matters and it's under control, the following utilities have been added to somehow shortcut *many* rountrips into a single one.
+
+
+#### assign(target, ...values)
+
+This is identical to [Object.assign](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/assign) except it assigns all values at once "*on the other side*".
+
+```js
+import remote from 'reflected-ffi/remote';
+
+// returned as utility once initialized
+const { assign, global } = remote({ ... });
+
+// it just works seamlessly within the context
+assign({}, { a: 1 }, { b: 2 });
+
+// but it operates *once* with local references
+assign(global.document.body, {
+  textContent: 'reflected-ffi',
+  className: 'is-awesome',
+});
+```
+
+
+#### gather(ref, ...props)
+
+This utility purpose is to retrieve *many* properties at once using the [array destructuring pattern](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Destructuring#array_destructuring):
+
+```js
+import remote from 'reflected-ffi/remote';
+
+// returned as utility once initialized
+const { gather, global } = remote({ ... });
+
+// returns all references within a single roundtrip
+const [navigator, location] = gather(global, 'navigator', 'location');
+```
+
+
+#### evaluate(callback, ...args)
+
+Inspired by `page.evaluate(() => {})` concept but more powerful, thanks to its ability to return any reflected reference or value, this [CSP hostile](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP) utility is based on *Function* evaluation of the provided callback, so that everything within its body will execute on the other side:
+
+```js
+import remote from 'reflected-ffi/remote';
+
+// returned as utility once initialized
+const { evaluate, global } = remote({ ... });
+
+// will return 3
+evaluate((a, b) => a + b, 1, 2);
+```
+
+Every synchronous or asynchronous method, function or arrow just works, but for the asynchronous cases one still needs to `await` the result, just like you would regularly.
+
+
+### query(target, path)
+
+Inspired by [jq](https://github.com/jqlang/jq), but not nearly as powerful, the `query` utility goal is to traverse namespaces and somehow "*batch*" their last reached value in a single rountrip.
+
+```js
+import remote from 'reflected-ffi/remote';
+
+// returned as utility once initialized
+const { query, global } = remote({ ... });
+
+// returns 1 and it does 1 roundtrip
+query(global, 'Array.isArray.length');
+
+// one rountrip to grab the body if
+// the document is not already around
+const body = query(global, 'document.body');
+```
+
+Please note there is no evaluation in here, the provided path is simply traversed and it supports indexes and braces notation so that `Array["isArray"]["length"]` would work the same and `namespace.reference[0].value` would work as well.
+

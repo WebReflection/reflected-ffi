@@ -92,6 +92,10 @@ console.assert(there.evaluate(function test(a, b) { return a + b }, 1, 2) === 3,
 console.assert(there.evaluate({test(a, b) { return a + b }}.test, 1, 2) === 3, 'method');
 console.assert(await there.evaluate(async function test(a, b) { return a + b }, 1, 2) === 3, 'async');
 
+console.assert(there.query(global, 'Array.isArray.length') === there.query(globalThis, 'Array.isArray.length'));
+console.assert(there.query(global, 'Array["isArray"]["length"]') === there.query(globalThis, 'Array.isArray.length'));
+console.assert(there.query(global, 'Object.name[0]') === 'O');
+
 Object.defineProperty(global, 'test', { value: 123 });
 console.assert(global.test === 123);
 

@@ -5,6 +5,7 @@ import {
   ASSIGN,
   EVALUATE,
   GATHER,
+  QUERY,
 
   APPLY,
   CONSTRUCT,
@@ -58,6 +59,8 @@ import {
   object,
   tv,
 } from './utils/index.js';
+
+import query from './utils/query.js';
 
 import heap from './utils/heap.js';
 
@@ -226,7 +229,7 @@ export default ({
      * @param  {...any} args
      * @returns
      */
-    reflect: (method, uid, ...args) => {
+    reflect(method, uid, ...args) {
       /* c8 ignore start */
       if (DEBUG) console.debug(method === UNREF ? 'GC' : 'ROUNDTRIP');
       /* c8 ignore stop */
@@ -273,6 +276,7 @@ export default ({
             args[i] = toValue(target[args[i]]);
           return args;
         }
+        case QUERY: return toValue(query(target, args[0]));
         case UNREF: return unref(uid);
         case IS_EXTENSIBLE: return isExtensible(target);
         case PREVENT_EXTENSIONS: return preventExtensions(target);
