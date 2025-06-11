@@ -1,6 +1,6 @@
 const brackets = /\[('|")?(.+?)\1\]/g;
 
-const keys = (target, key) => target[key];
+const keys = (target, key) => target?.[key];
 
 /**
  * Parses the given path and returns the value at the given target.
