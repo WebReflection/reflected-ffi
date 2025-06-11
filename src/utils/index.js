@@ -62,3 +62,10 @@ export const fromKey = ([type, value]) => type === DIRECT ? value : fromSymbol(v
 export const toKey = value => typeof value === 'string' ?
   tv(DIRECT, value) : tv(SYMBOL, toSymbol(value))
 ;
+
+const MAX_ARGS = 0x7FFF;
+
+export const push = (output, value) => {
+  for (let i = 0, length = value.length; i < length; i += MAX_ARGS)
+    output.push.apply(output, value.subarray(i, i + MAX_ARGS));
+};

@@ -31,7 +31,7 @@ import {
 
 import { toSymbol } from '../utils/symbol.js';
 
-import { isArray, isView } from '../utils/index.js';
+import { isArray, isView, push } from '../utils/index.js';
 import { toTag } from '../utils/global.js';
 
 const { isNaN, isFinite } = Number;
@@ -84,7 +84,7 @@ const encode = (input, output, cache) => {
       else if (input instanceof ArrayBuffer) {
         const ui8a = new Uint8Array(input);
         set(output, BUFFER, ui8a.length);
-        output.push(...ui8a);
+        push(output, ui8a);
       }
       else if (input instanceof Date) {
         output.push(DATE);
@@ -129,8 +129,7 @@ const encode = (input, output, cache) => {
       if (process(input, output, cache)) {
         const encoded = encoder.encode(input);
         set(output, STRING, encoded.length);
-        // TODO: worth fixing args arity limit?
-        output.push(...encoded);
+        push(output, encoded);
       }
       break;
     }
@@ -163,6 +162,10 @@ const encode = (input, output, cache) => {
   }
 };
 
+/**
+ * @param {any} value
+ * @returns {number[]}
+ */
 export default value => {
   const output = [];
   encode(value, output, new Map);

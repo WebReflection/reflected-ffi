@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>reflected-ffi: query</title>
+  <script type="module">
+    import local from '../boilerplate/local.js';
+
+    let length = 0;
+    console.time('main direct access');
+    for (let i = 0; i < 10; i++)
+      length = globalThis.document.documentElement.outerHTML.length || 0;
+    console.timeEnd('main direct access');
+    globalThis.pageLength = length;
+
+    local('./worker.js');
+  </script>
+</head>
+</html>

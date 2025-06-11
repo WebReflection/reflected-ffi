@@ -1,2 +1,2 @@
-declare function _default(value: any): any;
+declare function _default(value: Uint8Array): any;
 export default _default;

@@ -81,7 +81,7 @@ const decode = (input, cache) => {
     case BUFFER: {
       const index = i - 1;
       const length = size(input, i);
-      return $(cache, index, new Uint8Array(input.subarray(i += 4, i += length)).buffer);
+      return $(cache, index, input.slice(i += 4, i += length).buffer);
     }
     case STRING: {
       const index = i - 1;
@@ -149,6 +149,10 @@ const decode = (input, cache) => {
 
 let i = 0;
 
+/**
+ * @param {Uint8Array} value
+ * @returns {any}
+ */
 export default value => {
   i = 0;
   return decode(value, new Map);

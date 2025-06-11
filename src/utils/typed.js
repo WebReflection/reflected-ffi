@@ -1,5 +1,7 @@
 import { toTag } from './global.js';
 
+const fromArray = Array.from;
+
 /** @typedef {[Uint8Array<ArrayBufferLike>|number[], number]} BufferDetails */
 /** @typedef {[string, BufferDetails, number, number]} ViewDetails */
 
@@ -36,7 +38,7 @@ export const fromView = ([name, args, byteOffset, length]) => {
 export const toBuffer = (value, direct) => {
   const ui8a = new Uint8Array(value);
   return [
-    direct ? ui8a : [...ui8a],
+    direct ? ui8a : fromArray(ui8a),
     //@ts-ignore
     value.resizable ? value.maxByteLength : 0
   ];

@@ -42,6 +42,7 @@ assert(new Error('test'));
 assert(new Unknown('test'));
 assert({a: 123});
 assert(/test/gi);
+assert('string'.repeat(2 ** 16));
 
 console.assert(roundtrip(new Int32Array([1, 2, 3])) instanceof Int32Array);
 console.assert(roundtrip(new Int32Array([1, 2, 3])).join(',') === '1,2,3');

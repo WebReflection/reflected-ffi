@@ -12,6 +12,7 @@ export const object: {};
 export function loopValues(asValue: (value: any, cache?: Map<any, any>) => any): (arr: any[], cache?: Map<any, any>) => any[];
 export function fromKey([type, value]: TypeValue): string | symbol;
 export function toKey(value: string | symbol): TypeValue;
+export function push(output: any, value: any): void;
 /**
  * A type/value pair.
  */
