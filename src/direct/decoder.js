@@ -30,9 +30,7 @@ import {
 
 import { fromSymbol } from '../utils/symbol.js';
 
-const { fromCharCode } = String;
-const { isNaN, isFinite } = Number;
-const { defineProperty, is } = Object;
+const { defineProperty } = Object;
 
 const buffer = new ArrayBuffer(8);
 const f64a = new Float64Array(buffer);

@@ -20,9 +20,21 @@
       "types": "./types/buffer/decoder.d.ts",
       "import": "./src/buffer/decoder.js"
     },
+    "./direct/encoder": {
+      "types": "./types/direct/encoder.d.ts",
+      "import": "./src/direct/encoder.js"
+    },
+    "./direct/decoder": {
+      "types": "./types/direct/decoder.d.ts",
+      "import": "./src/direct/decoder.js"
+    },
     "./local": {
       "types": "./types/local.d.ts",
       "import": "./src/local.js"
+    },
+    "./query": {
+      "types": "./types/utils/query.d.ts",
+      "import": "./src/utils/query.js"
     },
     "./remote": {
       "types": "./types/remote.d.ts",

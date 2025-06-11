@@ -15,9 +15,9 @@ will produce the expected result and checks such as `Array.isArray(proxy)` or `p
 will also produce the correct result.
 
 Proxies created on the *local* context are cached until the *remote* consumer notifies that
-such proxy is not needed anymore remotely so that the *local* context can free its memory.
+such proxy is not needed anymore remotely so that the *local* context can free its memory and vice-versa.
 
-This dance is done via [FinalizationRegistry](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/FinalizationRegistry) and a special `unref(ptr)` trap based on the very same stack/logic.
+This dance is orchestrated via the [FinalizationRegistry](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/FinalizationRegistry) and a special `unref(ptr)` trap based on the very same stack/logic.
 
 The *remote* context also retains its own *callbacks* that can be invoked from the *local* context,
 but that's the only thing the *local* can do with the *remote* driver, useful to attach listeners
