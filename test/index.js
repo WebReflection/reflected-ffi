@@ -87,6 +87,11 @@ global.console.assert(fn(123n) === 123n);
 console.assert(ArrayBuffer.isView(new global.Int32Array([1, 2, 3])));
 console.assert((await global.import('../src/types.js')).DIRECT === 0);
 
+console.assert(there.evaluate((a, b) => a + b, 1, 2) === 3, 'arrow');
+console.assert(there.evaluate(function test(a, b) { return a + b }, 1, 2) === 3, 'named');
+console.assert(there.evaluate({test(a, b) { return a + b }}.test, 1, 2) === 3, 'method');
+console.assert(await there.evaluate(async function test(a, b) { return a + b }, 1, 2) === 3, 'async');
+
 Object.defineProperty(global, 'test', { value: 123 });
 console.assert(global.test === 123);
 

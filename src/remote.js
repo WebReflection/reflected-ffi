@@ -1,6 +1,7 @@
 import {
   UNREF,
   ASSIGN,
+  EVALUATE,
   GATHER,
 
   APPLY,
@@ -58,6 +59,8 @@ import {
   object,
   tv,
 } from './utils/index.js';
+
+import toJSONCallback from './utils/to-json-callback.js';
 
 import heap from './utils/heap.js';
 
@@ -164,6 +167,19 @@ export default ({
     return proxy;
   };
 
+  /**
+   * Checks if the given value is a proxy created in the remote side.
+   * @param {any} value
+   * @returns {boolean}
+   */
+  const isProxy = value => {
+    switch (typeof value) {
+      case 'object': if (value === null) break;
+      case 'function': return reflected in value;
+      default: return false;
+    }
+  };
+
   class Handler {
     constructor(_) { this._ = _ }
 
@@ -243,11 +259,15 @@ export default ({
      */
     global,
 
+    isProxy,
+
     /** @type {typeof assign} */
-    assign: (target, ...sources) => reflected in target ?
-      (reflect(ASSIGN, reference[1], toValue(assign({}, ...sources))), target) :
-      assign(target, ...sources)
-    ,
+    assign: (target, ...sources) => {
+      const asProxy = isProxy(target);
+      const assignment = assign(asProxy ? {} : target, ...sources);
+      if (asProxy) reflect(ASSIGN, reference[1], toValue(assignment));
+      return target;
+    },
 
     /**
      * Alows local references to be passed directly to the remote receiver,
@@ -266,32 +286,28 @@ export default ({
     },
 
     /**
+     * Evaluates elsewhere the given callback with the given arguments.
+     * This utility is similar to puppeteer's `page.evaluate` where the function
+     * content is evaluated in the local side and its result is returned.
+     * @param {Function} callback
+     * @param  {...any} args
+     * @returns {any}
+     */
+    evaluate: (callback, ...args) => fromValue(
+      reflect(EVALUATE, null, toJSONCallback(callback), toValues(args))
+    ),
+
+    /**
      * @param {object} target
      * @param  {...(string|symbol)} keys
      * @returns {any[]}
      */
     gather: (target, ...keys) => {
-      let asValue = fromValue;
-      if (reflected in target)
-        keys = reflect(GATHER, reference[1], toKeys(keys, weakRefs));
-      else
-        asValue = key => target[key];
-      for (let i = 0, length = keys.length; i < length; i++)
-        keys[i] = asValue(keys[i]);
+      const asProxy = isProxy(target);
+      const asValue = asProxy ? fromValue : (key => target[key]);
+      if (asProxy) keys = reflect(GATHER, reference[1], toKeys(keys, weakRefs));
+      for (let i = 0; i < keys.length; i++) keys[i] = asValue(keys[i]);
       return keys;
-    },
-
-    /**
-     * Checks if the given value is a proxy created in the remote side.
-     * @param {any} value
-     * @returns {boolean}
-     */
-    isProxy: value => {
-      switch (typeof value) {
-        case 'object': if (value === null) break;
-        case 'function': return reflected in value;
-        default: return false;
-      }
     },
 
     /**

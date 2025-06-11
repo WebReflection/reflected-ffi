@@ -3,6 +3,7 @@ let i = 0;
 // extras
 export const UNREF = i++;
 export const ASSIGN = i++;
+export const EVALUATE = i++;
 export const GATHER = i++;
 
 // traps

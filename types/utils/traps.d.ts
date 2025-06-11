@@ -1,5 +1,6 @@
 export const UNREF: number;
 export const ASSIGN: number;
+export const EVALUATE: number;
 export const GATHER: number;
 export const APPLY: number;
 export const CONSTRUCT: number;

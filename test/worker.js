@@ -5,7 +5,7 @@ const sab = new SharedArrayBuffer(8, { maxByteLength: 1 << 26 });
 const i32a = new Int32Array(sab);
 const decode = decoder({ dataView: new DataView(sab, 4) });
 
-const { global, direct, gather, assign, reflect } = remote({
+const { global, direct, evaluate, gather, assign, reflect } = remote({
   reflect(...args) {
     postMessage([i32a, args]);
     if (args[0]) {
@@ -74,3 +74,6 @@ console.log({ check: global.check }, 'check' in global, global.check);
 
 
 console.log(await global.fetch(global.location.href).then(r => r.text()));
+
+console.log(await evaluate(async (a, b) => a + b, 1, 2));
+

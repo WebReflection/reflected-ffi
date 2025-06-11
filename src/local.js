@@ -3,6 +3,7 @@ import DEBUG from './utils/debug.js';
 import {
   UNREF,
   ASSIGN,
+  EVALUATE,
   GATHER,
 
   APPLY,
@@ -59,6 +60,22 @@ import {
 } from './utils/index.js';
 
 import heap from './utils/heap.js';
+
+const {
+  apply,
+  construct,
+  defineProperty,
+  deleteProperty,
+  get,
+  getOwnPropertyDescriptor,
+  getPrototypeOf,
+  has,
+  isExtensible,
+  ownKeys,
+  preventExtensions,
+  set,
+  setPrototypeOf,
+} = Reflect;
 
 /**
  * @typedef {Object} LocalOptions Optional utilities used to orchestrate local <-> remote communication.
@@ -219,31 +236,36 @@ export default ({
       switch (method) {
         case GET: {
           const key = fromKey(args[0]);
-          return toValue(isGlobal && key === 'import' ? module : Reflect.get(target, key));
+          return toValue(isGlobal && key === 'import' ? module : get(target, key));
         }
         case APPLY: {
           const map = new Map;
-          return toValue(Reflect.apply(target, fromValue(args[0], map), fromValues(args[1], map)));
+          return toValue(apply(target, fromValue(args[0], map), fromValues(args[1], map)));
         }
-        case SET: return Reflect.set(target, fromKey(args[0]), fromValue(args[1]));
-        case HAS: return Reflect.has(target, fromKey(args[0]));
-        case OWN_KEYS: return toKeys(Reflect.ownKeys(target), weakRefs);
-        case CONSTRUCT: return toValue(Reflect.construct(target, fromValues(args[0])));
+        case SET: return set(target, fromKey(args[0]), fromValue(args[1]));
+        case HAS: return has(target, fromKey(args[0]));
+        case OWN_KEYS: return toKeys(ownKeys(target), weakRefs);
+        case CONSTRUCT: return toValue(construct(target, fromValues(args[0])));
         case GET_OWN_PROPERTY_DESCRIPTOR: {
-          const descriptor = Reflect.getOwnPropertyDescriptor(target, fromKey(args[0]));
+          const descriptor = getOwnPropertyDescriptor(target, fromKey(args[0]));
           if (descriptor) {
             for (const k in descriptor)
               descriptor[k] = toValue(descriptor[k]);
           }
           return descriptor;
         }
-        case DEFINE_PROPERTY: return Reflect.defineProperty(target, fromKey(args[0]), fromValue(args[1]));
-        case DELETE_PROPERTY: return Reflect.deleteProperty(target, fromKey(args[0]));
-        case GET_PROTOTYPE_OF: return toValue(Reflect.getPrototypeOf(target));
-        case SET_PROTOTYPE_OF: return Reflect.setPrototypeOf(target, fromValue(args[0]));
+        case DEFINE_PROPERTY: return defineProperty(target, fromKey(args[0]), fromValue(args[1]));
+        case DELETE_PROPERTY: return deleteProperty(target, fromKey(args[0]));
+        case GET_PROTOTYPE_OF: return toValue(getPrototypeOf(target));
+        case SET_PROTOTYPE_OF: return setPrototypeOf(target, fromValue(args[0]));
         case ASSIGN: {
           assign(target, fromValue(args[0]));
           return;
+        }
+        case EVALUATE: {
+          const body = fromValue(args[0]);
+          const fn = Function(`return(${body}).apply(null,arguments)`);
+          return toValue(apply(fn, null, fromValues(args[1])));
         }
         case GATHER: {
           args = fromKeys(args[0], weakRefs);
@@ -252,8 +274,8 @@ export default ({
           return args;
         }
         case UNREF: return unref(uid);
-        case IS_EXTENSIBLE: return Reflect.isExtensible(target);
-        case PREVENT_EXTENSIONS: return Reflect.preventExtensions(target);
+        case IS_EXTENSIBLE: return isExtensible(target);
+        case PREVENT_EXTENSIONS: return preventExtensions(target);
       }
     },
 
