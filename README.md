@@ -172,10 +172,12 @@ As an attempt to help performance when it matters and it's under control, the fo
 All utilities are also available for local purpose just to provide code portability and feature parity.
 
 
-#### assign(target, ...values)
+#### ➡️ assign(target, ...values)
 
   * **remote**: it's returned as part of the `remote(...)` invoke
   * **local**: it's available as global `Object.assign` standard method
+
+<details markdown=1><summary>learn more</summary>
 
 This is identical to [Object.assign](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/assign) except it assigns all values at once "*on the other side*".
 
@@ -195,11 +197,15 @@ assign(global.document.body, {
 });
 ```
 
+</details>
 
-#### gather(ref, ...props)
+
+#### ⬅️ gather(ref, ...props)
 
   * **remote**: it's returned as part of the `remote(...)` invoke
   * **local**: it's available as `reflected-ffi/gather` default export
+
+<details markdown=1><summary>learn more</summary>
 
 This utility purpose is to retrieve *many* properties at once using the [array destructuring pattern](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Destructuring#array_destructuring):
 
@@ -215,11 +221,14 @@ const [navigator, location] = gather(global, 'navigator', 'location');
 
 Please note that each *prop* passes through the [query](#querytarget-path) resolver so that `gather(global, "location.href"`), as example, would return the expected value at index `0`.
 
+</details>
 
-#### evaluate(callback, ...args)
+#### 🏃 evaluate(callback, ...args)
 
   * **remote**: it's returned as part of the `remote(...)` invoke
   * **local**: it's available as `reflected-ffi/evaluate` default export (it does *not* evaluate, just apply)
+
+<details markdown=1><summary>learn more</summary>
 
 Inspired by `page.evaluate(() => {})` concept but more powerful, thanks to its ability to return any reflected reference or value, this [CSP hostile](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP) utility is based on *Function* evaluation of the provided callback, so that everything within its body will execute on the other side:
 
@@ -235,11 +244,14 @@ evaluate((a, b) => a + b, 1, 2);
 
 Every synchronous or asynchronous method, function or arrow just works, but for the asynchronous cases one still needs to `await` the result, just like you would regularly.
 
+</details>
 
-### query(target, path)
+#### ⬅️ query(target, path)
 
   * **remote**: it's returned as part of the `remote(...)` invoke
   * **local**: it's available as `reflected-ffi/query` default export
+
+<details markdown=1><summary>learn more</summary>
 
 Inspired by [jq](https://github.com/jqlang/jq), but not nearly as powerful, the `query` utility goal is to traverse namespaces and somehow "*batch*" their last reached value in a single rountrip.
 
@@ -258,3 +270,5 @@ const body = query(global, 'document.body');
 ```
 
 Please note there is no evaluation in here, the provided path is simply traversed and it supports indexes and braces notation so that `Array["isArray"]["length"]` would work the same and `namespace.reference[0].value` would work as well.
+
+</details>
