@@ -241,6 +241,14 @@ export default ({
       const map = new Map;
       return fromValue(reflect(APPLY, this._, toValue(self, map), toValues(args, map)));
     }
+
+    get(_, key) {
+      switch (key) {
+        case 'apply': return (self, args) => this.apply(_, self, args);
+        case 'call': return (self, ...args) => this.apply(_, self, args);
+        default: return super.get(_, key);
+      }
+    }
   }
 
   let indirect = true, direct, reference;

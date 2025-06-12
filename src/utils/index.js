@@ -7,6 +7,8 @@ import { fromSymbol, toSymbol } from './symbol.js';
 
 export const assign = Object.assign;
 
+export const fromArray = Array.from;
+
 export const isArray = Array.isArray;
 
 export const isView = ArrayBuffer.isView;

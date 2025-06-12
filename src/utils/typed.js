@@ -1,6 +1,5 @@
 import { toTag } from './global.js';
-
-const fromArray = Array.from;
+import { fromArray } from './index.js';
 
 /** @typedef {[Uint8Array<ArrayBufferLike>|number[], number]} BufferDetails */
 /** @typedef {[string, BufferDetails, number, number]} ViewDetails */

@@ -120,9 +120,16 @@ global.trapped = null;
 
 try {
   setTimeout(gc);
-  setTimeout(console.log, 250, 'done with gc');
+  global.console.log.call(global.console, 'gc', 'scheduled');
 } catch (e) {
-  setTimeout(console.log, 250, 'done without gc');
+  global.console.log.call(global.console, 'no', 'gc');
+}
+finally {
+  setTimeout(function () {
+    'use strict';
+    global.console.log.apply(global.console, ['test', 'completed']);
+    global.console.log.apply(global.console, arguments);
+  }, 250, { ok: true });
 }
 
 setTimeout(here.terminate, 500);

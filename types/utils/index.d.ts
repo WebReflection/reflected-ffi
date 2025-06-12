@@ -4,6 +4,12 @@ export const assign: {
     <T extends {}, U, V, W>(target: T, source1: U, source2: V, source3: W): T & U & V & W;
     (target: object, ...sources: any[]): any;
 };
+export const fromArray: {
+    <T>(arrayLike: ArrayLike<T>): T[];
+    <T, U>(arrayLike: ArrayLike<T>, mapfn: (v: T, k: number) => U, thisArg?: any): U[];
+    <T>(iterable: Iterable<T> | ArrayLike<T>): T[];
+    <T, U>(iterable: Iterable<T> | ArrayLike<T>, mapfn: (v: T, k: number) => U, thisArg?: any): U[];
+};
 export const isArray: (arg: any) => arg is any[];
 export const isView: (arg: any) => arg is ArrayBufferView;
 export function tv(type: number, value: any): TypeValue;
