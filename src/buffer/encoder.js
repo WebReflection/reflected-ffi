@@ -11,8 +11,11 @@ import { isArray } from '../utils/index.js';
 const { stringify } = JSON;
 
 const resize = (buffer, size) => {
-  if (buffer.byteLength < size)
+  if (buffer.byteLength < size) {
+    /* c8 ignore start */
     (buffer.grow || buffer.resize).call(buffer, size);
+    /* c8 ignore stop */
+  }
 };
 
 const init = (type, buffer, length, size, offset) => {
@@ -35,32 +38,34 @@ const asBUFFER = ([value, maxByteLength], buffer, offset) => {
   const dv = init(BUFFER, buffer, length, length + 4, offset);
   dv.setUint32(5, maxByteLength, true);
   new Uint8Array(buffer, offset + 9, length).set(value);
-  return length;
+  return length + 9;
 };
 
 const asDIRECT = (value, buffer, offset) => {
   const length = value.length;
   init(DIRECT, buffer, length, length, offset);
   new Uint8Array(buffer, offset + 5, length).set(value);
-  return length;
+  return length + 5;
 };
 
 const asSTRING = (value, buffer, offset) => {
   const string = stringify(value) || '';
   const length = string.length;
-  const dv = init(STRING, buffer, length, length * 2, offset);
+  const double = length * 2;
+  const dv = init(STRING, buffer, length, double, offset);
   if (length) asUTF16Chars(dv, string, 5, length);
-  return length;
+  return double + 5;
 };
 
-const asVIEW = ([name, args, byteOffset, byteLength], buffer, offset) => {
+const asVIEW = ([name, args, byteOffset, length], buffer, offset) => {
   const nlength = name.length;
   const utf16length = nlength * 2;
   const dv = init(VIEW, buffer, nlength, utf16length + 8, offset);
   dv.setUint32(5, byteOffset, true);
-  dv.setUint32(9, byteLength, true);
+  dv.setUint32(9, length, true);
   asUTF16Chars(dv, name, 13, nlength);
-  return utf16length + asBUFFER(args, buffer, offset + 13 + utf16length);
+  offset += 13 + utf16length;
+  return offset + asBUFFER(args, buffer, offset);
 };
 
 export const encode = (value, buffer, options) => {
@@ -72,7 +77,8 @@ export const encode = (value, buffer, options) => {
       case VIEW: return asVIEW(v, buffer, byteOffset);
       case DIRECT: return options?.direct ?
         asDIRECT(options.direct(v), buffer, byteOffset) :
-        asSTRING(v, buffer, byteOffset);
+        asSTRING(v, buffer, byteOffset)
+      ;
       default: if (t & REMOTE) {
         resize(buffer, byteOffset + 5);
         const dv = new DataView(buffer, byteOffset);

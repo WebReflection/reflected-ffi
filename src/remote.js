@@ -244,6 +244,7 @@ export default ({
 
     get(_, key) {
       switch (key) {
+        // skip obvious roundtrip cases
         case 'apply': return (self, args) => this.apply(_, self, args);
         case 'call': return (self, ...args) => this.apply(_, self, args);
         default: return super.get(_, key);

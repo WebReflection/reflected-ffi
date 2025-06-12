@@ -33,6 +33,7 @@ import { toSymbol } from '../utils/symbol.js';
 
 import { isArray, isView, push } from '../utils/index.js';
 import { toTag } from '../utils/global.js';
+import { encoder } from '../utils/text.js';
 
 const { isNaN, isFinite } = Number;
 const { ownKeys } = Reflect;
@@ -43,7 +44,6 @@ const f64a = new Float64Array(buffer);
 const u32a = new Uint32Array(buffer);
 const b64a = new BigInt64Array(buffer);
 const u8a = new Uint8Array(buffer);
-const encoder = new TextEncoder;
 
 const process = (input, output, cache) => {
   const value = cache.get(input);

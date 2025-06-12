@@ -3,7 +3,7 @@ import remote from '../src/remote.js';
 import './symbol.js';
 import './global.js';
 import './view.js';
-// import './encoder.js';
+import './encoder.js';
 import './direct.js';
 
 const array = [1, 2, 3];

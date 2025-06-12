@@ -29,6 +29,7 @@ import {
 } from './types.js';
 
 import { fromSymbol } from '../utils/symbol.js';
+import { decoder } from '../utils/text.js';
 
 const { defineProperty } = Object;
 
@@ -37,8 +38,6 @@ const f64a = new Float64Array(buffer);
 const u32a = new Uint32Array(buffer);
 const b64a = new BigInt64Array(buffer);
 const u8a = new Uint8Array(buffer);
-
-const decoder = new TextDecoder;
 
 const $ = (cache, index, value) => {
   cache.set(index, value);

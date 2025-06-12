@@ -6,6 +6,7 @@ import {
 } from '../types.js';
 
 import { arrayBuffer } from '../utils/typed.js';
+import { decoder as td } from '../utils/text.js';
 
 const { parse } = JSON;
 const { fromCharCode } = String;
@@ -25,11 +26,16 @@ const asBUFFER = (dv, length, offset) => arrayBuffer(
   new Uint8Array(dv.buffer, offset + 4, length)
 );
 
-const asDIRECT = (dv, length, offset) => {
-  const view = new Uint8Array(length);
-  view.set(new Uint8Array(dv.buffer, offset, length));
-  return view;
-};
+let asDIRECT = (dv, length, offset) => new Uint8Array(dv.buffer, offset, length);
+
+/* c8 ignore start */
+// use zero-copy fast path when possible (NodeJS as example)
+try { td.decode(new Uint8Array(new SharedArrayBuffer(1))) }
+catch (_) {
+  const direct = asDIRECT;
+  asDIRECT = (dv, length, offset) => direct(dv, length, offset).slice(0);
+}
+/* c8 ignore stop */
 
 const asSTRING = (dv, length, offset) => {
   const string = asUTF16Chars(dv, offset, length);
@@ -38,13 +44,13 @@ const asSTRING = (dv, length, offset) => {
 
 const asVIEW = (dv, length, offset) => {
   const byteOffset = dv.getUint32(offset, true);
-  const byteLength = dv.getUint32(offset + 4, true);
+  const vlength = dv.getUint32(offset + 4, true);
   offset += 8;
   const name = asUTF16Chars(dv, offset, length);
   offset += length * 2;
   const buffer = asBUFFER(dv, dv.getUint32(offset + 1, true), offset + 5);
   const args = [buffer, byteOffset];
-  if (byteLength) args.push(byteLength);
+  if (vlength) args.push(vlength);
   return new globalThis[name](...args);
 };
 
@@ -55,15 +61,15 @@ export const decode = (buffer, options) => {
     case BUFFER: return asBUFFER(dv, dv.getUint32(1, true), 5);
     case VIEW: return asVIEW(dv, dv.getUint32(1, true), 5);
     case STRING: return asSTRING(dv, dv.getUint32(1, true), 5);
-    case DIRECT: {
-      const indirect = !options?.direct;
-      const length = dv.getUint32(1, true);
-      const result = indirect ? asSTRING(dv, length, 5) : asDIRECT(dv, length, 5);
-      return [DIRECT, indirect ? result : options.direct(result)];
-    }
-    default: {
-      return [type, dv.getInt32(1, true)];
-    }
+    case DIRECT: return [DIRECT, options.direct(asDIRECT(dv, dv.getUint32(1, true), 5))];
+    // DIRECT should never travel as such if no `direct` option is provided
+    // {
+    //   const indirect = !options?.direct;
+    //   const length = dv.getUint32(1, true);
+    //   const result = indirect ? asSTRING(dv, length, 5) : asDIRECT(dv, length, 5);
+    //   return [DIRECT, indirect ? result : options.direct(result)];
+    // }
+    default: return [type, dv.getInt32(1, true)];
   }
 };
 
