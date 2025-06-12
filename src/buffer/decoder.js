@@ -6,7 +6,7 @@ import {
 } from '../types.js';
 
 import { arrayBuffer } from '../utils/typed.js';
-import { decoder as td } from '../utils/text.js';
+import canDecode from '../utils/sab-decoder.js';
 
 const { parse } = JSON;
 const { fromCharCode } = String;
@@ -26,12 +26,11 @@ const asBUFFER = (dv, length, offset) => arrayBuffer(
   new Uint8Array(dv.buffer, offset + 4, length)
 );
 
+// use zero-copy fast path when possible (NodeJS as example)
 let asDIRECT = (dv, length, offset) => new Uint8Array(dv.buffer, offset, length);
 
 /* c8 ignore start */
-// use zero-copy fast path when possible (NodeJS as example)
-try { td.decode(new Uint8Array(new SharedArrayBuffer(1))) }
-catch (_) {
+if (!canDecode) {
   const direct = asDIRECT;
   asDIRECT = (dv, length, offset) => direct(dv, length, offset).slice(0);
 }

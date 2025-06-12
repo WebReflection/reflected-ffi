@@ -1,2 +1,4 @@
-declare function _default(value: Uint8Array): any;
-export default _default;
+export function decode(value: Uint8Array): any;
+export function decoder({ byteOffset }?: {
+    byteOffset?: number;
+}): (length: number, buffer: SharedArrayBuffer) => any;

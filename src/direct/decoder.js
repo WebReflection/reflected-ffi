@@ -29,7 +29,8 @@ import {
 } from './types.js';
 
 import { fromSymbol } from '../utils/symbol.js';
-import { decoder } from '../utils/text.js';
+import { decoder as textDecoder } from '../utils/text.js';
+import canDecode from '../utils/sab-decoder.js';
 
 const { defineProperty } = Object;
 
@@ -54,14 +55,20 @@ const size = (input, i) => {
   return u32a[0];
 };
 
-const decode = (input, cache) => {
+/* c8 ignore start */
+const subarray = canDecode ?
+  (input, start, end) => input.subarray(start, end) :
+  (input, start, end) => input.slice(start, end);
+/* c8 ignore stop */
+
+const deflate = (input, cache) => {
   switch (input[i++]) {
     case OBJECT: {
       const object = $(cache, i - 1, {});
       const length = size(input, i);
       i += 4;
       for (let j = 0; j < length; j++)
-        object[decode(input, cache)] = decode(input, cache);
+        object[deflate(input, cache)] = deflate(input, cache);
       return object;
     }
     case ARRAY: {
@@ -69,13 +76,13 @@ const decode = (input, cache) => {
       const length = size(input, i);
       i += 4;
       for (let j = 0; j < length; j++)
-        array.push(decode(input, cache));
+        array.push(deflate(input, cache));
       return array;
     }
     case VIEW: {
       const index = i - 1;
-      const name = decode(input, cache);
-      return $(cache, index, new globalThis[name](decode(input, cache)));
+      const name = deflate(input, cache);
+      return $(cache, index, new globalThis[name](deflate(input, cache)));
     }
     case BUFFER: {
       const index = i - 1;
@@ -85,21 +92,21 @@ const decode = (input, cache) => {
     case STRING: {
       const index = i - 1;
       const length = size(input, i);
-      return $(cache, index, decoder.decode(input.subarray(i += 4, i += length)));
+      return $(cache, index, textDecoder.decode(subarray(input, i += 4, i += length)));
     }
     case NUMBER: {
       number(input, i, i += 8);
       return f64a[0];
     }
     case DATE: {
-      return $(cache, i - 1, new Date(decode(input, cache)));
+      return $(cache, i - 1, new Date(deflate(input, cache)));
     }
     case MAP: {
       const map = $(cache, i - 1, new Map);
       const length = size(input, i);
       i += 4;
       for (let j = 0; j < length; j++)
-        map.set(decode(input, cache), decode(input, cache));
+        map.set(deflate(input, cache), deflate(input, cache));
       return map;
     }
     case SET: {
@@ -107,20 +114,20 @@ const decode = (input, cache) => {
       const length = size(input, i);
       i += 4;
       for (let j = 0; j < length; j++)
-        set.add(decode(input, cache));
+        set.add(deflate(input, cache));
       return set;
     }
     case ERROR: {
-      const name = decode(input, cache);
-      const message = decode(input, cache);
-      const stack = decode(input, cache);
+      const name = deflate(input, cache);
+      const message = deflate(input, cache);
+      const stack = deflate(input, cache);
       const Class = globalThis[name] || Error;
       const error = new Class(message);
       return $(cache, i - 1, defineProperty(error, 'stack', { value: stack }));
     }
     case REGEXP: {
-      const source = decode(input, cache);
-      const flags = decode(input, cache);
+      const source = deflate(input, cache);
+      const flags = deflate(input, cache);
       return $(cache, i - 1, new RegExp(source, flags));
     }
     case FALSE: return false;
@@ -135,7 +142,7 @@ const decode = (input, cache) => {
       number(input, i, i += 8);
       return b64a[0];
     }
-    case SYMBOL: return fromSymbol(decode(input, cache));
+    case SYMBOL: return fromSymbol(deflate(input, cache));
     case RECURSION: {
       const index = size(input, i);
       i += 4;
@@ -152,7 +159,15 @@ let i = 0;
  * @param {Uint8Array} value
  * @returns {any}
  */
-export default value => {
+export const decode = value => {
   i = 0;
-  return decode(value, new Map);
+  return deflate(value, new Map);
 };
+
+/**
+ * @param {{ byteOffset?: number }} [options]
+ * @returns {(length: number, buffer: SharedArrayBuffer) => any}
+ */
+export const decoder = ({ byteOffset = 0 } = {}) => (length, buffer) => decode(
+  new Uint8Array(buffer, byteOffset, length)
+);

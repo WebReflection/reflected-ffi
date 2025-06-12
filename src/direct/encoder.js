@@ -33,7 +33,7 @@ import { toSymbol } from '../utils/symbol.js';
 
 import { isArray, isView, push } from '../utils/index.js';
 import { toTag } from '../utils/global.js';
-import { encoder } from '../utils/text.js';
+import { encoder as textEncoder } from '../utils/text.js';
 
 const { isNaN, isFinite } = Number;
 const { ownKeys } = Reflect;
@@ -62,7 +62,7 @@ const set = (output, type, length) => {
   output.push(type, ...u8a.subarray(0, 4));
 };
 
-const encode = (input, output, cache) => {
+const inflate = (input, output, cache) => {
   switch (typeof input) {
     case 'object': {
       if (input === null) {
@@ -74,12 +74,12 @@ const encode = (input, output, cache) => {
         const length = input.length;
         set(output, ARRAY, length);
         for (let i = 0; i < length; i++)
-          encode(input[i], output, cache);
+          inflate(input[i], output, cache);
       }
       else if (isView(input)) {
         output.push(VIEW);
-        encode(toTag(input), output, cache);
-        encode(input.buffer, output, cache);
+        inflate(toTag(input), output, cache);
+        inflate(input.buffer, output, cache);
       }
       else if (input instanceof ArrayBuffer) {
         const ui8a = new Uint8Array(input);
@@ -88,35 +88,35 @@ const encode = (input, output, cache) => {
       }
       else if (input instanceof Date) {
         output.push(DATE);
-        encode(input.getTime(), output, cache);
+        inflate(input.getTime(), output, cache);
       }
       else if (input instanceof Map) {
         set(output, MAP, input.size);
         for (const [key, value] of input) {
-          encode(key, output, cache);
-          encode(value, output, cache);
+          inflate(key, output, cache);
+          inflate(value, output, cache);
         }
       }
       else if (input instanceof Set) {
         set(output, SET, input.size);
         for (const value of input)
-          encode(value, output, cache);
+          inflate(value, output, cache);
       }
       else if (input instanceof Error) {
         output.push(ERROR);
-        encode(input.name, output, cache);
-        encode(input.message, output, cache);
-        encode(input.stack, output, cache);
+        inflate(input.name, output, cache);
+        inflate(input.message, output, cache);
+        inflate(input.stack, output, cache);
       }
       else if (input instanceof RegExp) {
         output.push(REGEXP);
-        encode(input.source, output, cache);
-        encode(input.flags, output, cache);
+        inflate(input.source, output, cache);
+        inflate(input.flags, output, cache);
       }
       else {
         if ('toJSON' in input) {
           const json = input.toJSON();
-          encode(json === input ? null : json, output, cache);
+          inflate(json === input ? null : json, output, cache);
         }
         else {
           const keys = ownKeys(input);
@@ -124,8 +124,8 @@ const encode = (input, output, cache) => {
           set(output, OBJECT, length);
           for (let i = 0; i < length; i++) {
             const key = keys[i];
-            encode(key, output, cache);
-            encode(input[key], output, cache);
+            inflate(key, output, cache);
+            inflate(input[key], output, cache);
           }
         }
       }
@@ -133,7 +133,7 @@ const encode = (input, output, cache) => {
     }
     case 'string': {
       if (process(input, output, cache)) {
-        const encoded = encoder.encode(input);
+        const encoded = textEncoder.encode(input);
         set(output, STRING, encoded.length);
         push(output, encoded);
       }
@@ -141,7 +141,7 @@ const encode = (input, output, cache) => {
     }
     case 'symbol': {
       output.push(SYMBOL);
-      encode(toSymbol(input), output, cache);
+      inflate(toSymbol(input), output, cache);
       break;
     }
     case 'number':
@@ -172,8 +172,21 @@ const encode = (input, output, cache) => {
  * @param {any} value
  * @returns {number[]}
  */
-export default value => {
+export const encode = value => {
   const output = [];
-  encode(value, output, new Map);
+  inflate(value, output, new Map);
   return output;
+};
+
+/**
+ * @param {{ byteOffset?: number }} [options]
+ * @returns {(value: any, buffer: SharedArrayBuffer) => number}
+ */
+export const encoder = ({ byteOffset = 0 } = {}) => (value, buffer) => {
+  const output = encode(value);
+  const length = output.length;
+  const size = length + byteOffset;
+  if (buffer.byteLength < size) buffer.grow(size);
+  new Uint8Array(buffer, byteOffset, length).set(output);
+  return length;
 };

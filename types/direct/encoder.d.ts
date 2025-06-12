@@ -1,2 +1,4 @@
-declare function _default(value: any): number[];
-export default _default;
+export function encode(value: any): number[];
+export function encoder({ byteOffset }?: {
+    byteOffset?: number;
+}): (value: any, buffer: SharedArrayBuffer) => number;

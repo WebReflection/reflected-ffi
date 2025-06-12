@@ -1,5 +1,5 @@
-import encode from '../src/direct/encoder.js';
-import decode from '../src/direct/decoder.js';
+import { encode, encoder } from '../src/direct/encoder.js';
+import { decode, decoder } from '../src/direct/decoder.js';
 
 const roundtrip = value => decode(new Uint8Array(encode(value)));
 
@@ -49,3 +49,11 @@ console.assert(roundtrip(new Int32Array([1, 2, 3])).join(',') === '1,2,3');
 
 console.assert(roundtrip({ toJSON: () => 123 }) === 123);
 console.assert(roundtrip({ toJSON() { return this }}) === null);
+
+const sab = new SharedArrayBuffer(4, { maxByteLength: 100 });
+const enc = encoder({ byteOffset: 0 });
+const dec = decoder({ byteOffset: 0 });
+
+const written = enc('hello encoder', sab);
+console.assert(written === 5 + 'hello encoder'.length);
+console.assert(dec(written, sab) === 'hello encoder');

@@ -2,8 +2,8 @@ import nextResolver from 'https://esm.run/next-resolver';
 const [next, resolve] = nextResolver();
 
 import { encoder } from '../../src/buffer/encoder.js';
-import writer from '../../src/direct/encoder.js';
-const encode = encoder({ byteOffset: 4, direct: writer });
+import { encode as direct } from '../../src/direct/encoder.js';
+const encode = encoder({ byteOffset: 4, direct });
 
 import local from '../../src/local.js';
 
