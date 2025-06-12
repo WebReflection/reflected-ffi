@@ -28,6 +28,14 @@
       "types": "./types/direct/decoder.d.ts",
       "import": "./src/direct/decoder.js"
     },
+    "./evaluate": {
+      "types": "./types/utils/evaluate.d.ts",
+      "import": "./src/utils/evaluate.js"
+    },
+    "./gather": {
+      "types": "./types/utils/gather.d.ts",
+      "import": "./src/utils/gather.js"
+    },
     "./local": {
       "types": "./types/local.d.ts",
       "import": "./src/local.js"

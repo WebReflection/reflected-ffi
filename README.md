@@ -169,8 +169,13 @@ This project does everything it can to be as fast as possible but it should be c
 
 As an attempt to help performance when it matters and it's under control, the following utilities have been added to somehow shortcut *many* rountrips into a single one.
 
+All utilities are also available for local purpose just to provide code portability and feature parity.
+
 
 #### assign(target, ...values)
+
+  * **remote**: it's returned as part of the `remote(...)` invoke
+  * **local**: it's available as global `Object.assign` standard method
 
 This is identical to [Object.assign](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/assign) except it assigns all values at once "*on the other side*".
 
@@ -193,6 +198,9 @@ assign(global.document.body, {
 
 #### gather(ref, ...props)
 
+  * **remote**: it's returned as part of the `remote(...)` invoke
+  * **local**: it's available as `reflected-ffi/gather` default export
+
 This utility purpose is to retrieve *many* properties at once using the [array destructuring pattern](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Destructuring#array_destructuring):
 
 ```js
@@ -210,6 +218,9 @@ Please note that each *prop* passes through the [query](#querytarget-path) resol
 
 #### evaluate(callback, ...args)
 
+  * **remote**: it's returned as part of the `remote(...)` invoke
+  * **local**: it's available as `reflected-ffi/evaluate` default export (it does *not* evaluate, just apply)
+
 Inspired by `page.evaluate(() => {})` concept but more powerful, thanks to its ability to return any reflected reference or value, this [CSP hostile](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP) utility is based on *Function* evaluation of the provided callback, so that everything within its body will execute on the other side:
 
 ```js
@@ -226,6 +237,9 @@ Every synchronous or asynchronous method, function or arrow just works, but for 
 
 
 ### query(target, path)
+
+  * **remote**: it's returned as part of the `remote(...)` invoke
+  * **local**: it's available as `reflected-ffi/query` default export
 
 Inspired by [jq](https://github.com/jqlang/jq), but not nearly as powerful, the `query` utility goal is to traverse namespaces and somehow "*batch*" their last reached value in a single rountrip.
 
