@@ -47,3 +47,5 @@ assert('string'.repeat(2 ** 16));
 console.assert(roundtrip(new Int32Array([1, 2, 3])) instanceof Int32Array);
 console.assert(roundtrip(new Int32Array([1, 2, 3])).join(',') === '1,2,3');
 
+console.assert(roundtrip({ toJSON: () => 123 }) === 123);
+console.assert(roundtrip({ toJSON() { return this }}) === null);

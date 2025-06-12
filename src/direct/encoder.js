@@ -88,7 +88,7 @@ const encode = (input, output, cache) => {
       }
       else if (input instanceof Date) {
         output.push(DATE);
-        encode(input.toISOString(), output, cache);
+        encode(input.getTime(), output, cache);
       }
       else if (input instanceof Map) {
         set(output, MAP, input.size);
@@ -114,13 +114,19 @@ const encode = (input, output, cache) => {
         encode(input.flags, output, cache);
       }
       else {
-        const keys = ownKeys(input);
-        const length = keys.length;
-        set(output, OBJECT, length);
-        for (let i = 0; i < length; i++) {
-          const key = keys[i];
-          encode(key, output, cache);
-          encode(input[key], output, cache);
+        if ('toJSON' in input) {
+          const json = input.toJSON();
+          encode(json === input ? null : json, output, cache);
+        }
+        else {
+          const keys = ownKeys(input);
+          const length = keys.length;
+          set(output, OBJECT, length);
+          for (let i = 0; i < length; i++) {
+            const key = keys[i];
+            encode(key, output, cache);
+            encode(input[key], output, cache);
+          }
         }
       }
       break;
