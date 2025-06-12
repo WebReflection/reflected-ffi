@@ -4,6 +4,12 @@
 
 A remotely reflected Foreign Function Interface.
 
+
+## How To Bootstrap
+
+You can check both [local boilerplate](./test/boilerplate/local.js) and the [remote boilerplate](./test/boilerplate/remote.js) to have an idea of how to orchestrate this module in a way that allows workers to drive the main thread.
+
+
 ### Architecture
 
 The **direct**, one way and *remote driven*, architecture is fully based on Proxied pointers (by type)
@@ -235,4 +241,3 @@ const body = query(global, 'document.body');
 ```
 
 Please note there is no evaluation in here, the provided path is simply traversed and it supports indexes and braces notation so that `Array["isArray"]["length"]` would work the same and `namespace.reference[0].value` would work as well.
-
