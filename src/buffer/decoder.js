@@ -6,7 +6,7 @@ import {
   ERROR,
 } from '../types.js';
 
-import { defineProperty, identity } from '../utils/index.js';
+import { defineProperty } from '../utils/index.js';
 import { arrayBuffer } from '../utils/typed.js';
 import canDecode from '../utils/sab-decoder.js';
 
@@ -61,21 +61,15 @@ const asVIEW = (dv, length, offset) => {
   return new globalThis[name](...args);
 };
 
-const dvDecoder = (dv, direct = identity) => {
+const dvDecoder = (dv, direct) => {
   const type = dv.getUint8(0);
   switch (type) {
     case BUFFER: return asBUFFER(dv, dv.getUint32(1, true), 5);
     case VIEW: return asVIEW(dv, dv.getUint32(1, true), 5);
     case STRING: return asSTRING(dv, dv.getUint32(1, true), 5);
+    // when type is DIRECT it means local/remote must have it
     case DIRECT: return [DIRECT, direct(asDIRECT(dv, dv.getUint32(1, true), 5))];
     case ERROR: return asERROR(dv, dv.getUint32(1, true), 5);
-    // DIRECT should never travel as such if no `direct` option is provided
-    // {
-    //   const indirect = !options?.direct;
-    //   const length = dv.getUint32(1, true);
-    //   const result = indirect ? asSTRING(dv, length, 5) : asDIRECT(dv, length, 5);
-    //   return [DIRECT, indirect ? result : options.direct(result)];
-    // }
     default: return [type, dv.getInt32(1, true)];
   }
 };
