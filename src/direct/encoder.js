@@ -15,6 +15,7 @@ import {
   N_ZERO,
 
   BIGINT,
+  BIGUINT,
   STRING,
   SYMBOL,
 
@@ -172,8 +173,13 @@ const inflate = (input, output, cache) => {
       output.push(input ? TRUE : FALSE);
       break;
     case 'bigint': {
-      dv.setBigInt64(0, input, true);
-      output.push(BIGINT, ...u8a8);
+      let type = BIGINT;
+      if (9223372036854775807n < input) {
+        dv.setBigUint64(0, input, true);
+        type = BIGUINT;
+      }
+      else dv.setBigInt64(0, input, true);
+      output.push(type, ...u8a8);
       break;
     }
     // this covers functions too

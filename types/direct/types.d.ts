@@ -9,6 +9,7 @@ export const N_INFINITY: number;
 export const ZERO: number;
 export const N_ZERO: number;
 export const BIGINT: number;
+export const BIGUINT: number;
 export const STRING: number;
 export const SYMBOL: number;
 export const ARRAY: number;

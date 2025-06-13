@@ -14,6 +14,7 @@ import {
   N_ZERO,
 
   BIGINT,
+  BIGUINT,
   STRING,
   SYMBOL,
 
@@ -163,6 +164,10 @@ const deflate = (input, cache) => {
     case BIGINT: {
       number(input, i, i += 8);
       return dv.getBigInt64(0, true);
+    }
+    case BIGUINT: {
+      number(input, i, i += 8);
+      return dv.getBigUint64(0, true);
     }
     case SYMBOL: return fromSymbol(deflate(input, cache));
     case RECURSION: {

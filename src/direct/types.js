@@ -14,6 +14,7 @@ export const ZERO = i++;
 export const N_ZERO = i++;
 
 export const BIGINT = i++;
+export const BIGUINT = i++;
 
 export const STRING = i++;
 
