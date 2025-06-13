@@ -1,3 +1,5 @@
+//@ts-check
+
 import {
   FALSE,
   TRUE,
@@ -31,36 +33,56 @@ import {
 import { fromSymbol } from '../utils/symbol.js';
 import { decoder as textDecoder } from '../utils/text.js';
 import canDecode from '../utils/sab-decoder.js';
+import { dv, u8a8 } from './views.js';
+
+/** @typedef {Map<number, any>} Cache */
 
 const { defineProperty } = Object;
 
-const buffer = new ArrayBuffer(8);
-const f64a = new Float64Array(buffer);
-const u32a = new Uint32Array(buffer);
-const b64a = new BigInt64Array(buffer);
-const u8a = new Uint8Array(buffer);
-
+/**
+ * @param {Cache} cache
+ * @param {number} index
+ * @param {any} value
+ * @returns {any}
+ */
 const $ = (cache, index, value) => {
   cache.set(index, value);
   return value;
 };
 
+/**
+ * @param {Uint8Array} input
+ * @param {number} start
+ * @param {number} end
+ */
 const number = (input, start, end) => {
   for (let i = 0; start < end; start++)
-    u8a[i++] = input[start];
+    u8a8[i++] = input[start];
 };
 
+/**
+ * @param {Uint8Array} input
+ * @param {number} i
+ * @returns {number}
+ */
 const size = (input, i) => {
-  for (let j = 0; j < 4; j++) u8a[j] = input[i++];
-  return u32a[0];
+  for (let j = 0; j < 4; j++) u8a8[j] = input[i++];
+  return dv.getUint32(0, true);
 };
 
 /* c8 ignore start */
-const subarray = canDecode ?
-  (input, start, end) => input.subarray(start, end) :
-  (input, start, end) => input.slice(start, end);
+const subarray = /** @type {(input:Uint8Array,start:number,end:number)=>Uint8Array} */(
+  canDecode ?
+    (input, start, end) => input.subarray(start, end) :
+    (input, start, end) => input.slice(start, end)
+);
 /* c8 ignore stop */
 
+/**
+ * @param {Uint8Array} input
+ * @param {Cache} cache
+ * @returns {any}
+ */
 const deflate = (input, cache) => {
   switch (input[i++]) {
     case OBJECT: {
@@ -96,7 +118,7 @@ const deflate = (input, cache) => {
     }
     case NUMBER: {
       number(input, i, i += 8);
-      return f64a[0];
+      return dv.getFloat64(0, true);
     }
     case DATE: {
       return $(cache, i - 1, new Date(deflate(input, cache)));
@@ -140,7 +162,7 @@ const deflate = (input, cache) => {
     case NULL: return null;
     case BIGINT: {
       number(input, i, i += 8);
-      return b64a[0];
+      return dv.getBigInt64(0, true);
     }
     case SYMBOL: return fromSymbol(deflate(input, cache));
     case RECURSION: {

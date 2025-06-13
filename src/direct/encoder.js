@@ -1,3 +1,5 @@
+//@ts-check
+
 import {
   FALSE,
   TRUE,
@@ -34,23 +36,25 @@ import { toSymbol } from '../utils/symbol.js';
 import { isArray, isView, push } from '../utils/index.js';
 import { toTag } from '../utils/global.js';
 import { encoder as textEncoder } from '../utils/text.js';
+import { dv, u8a8, u8a4 } from './views.js';
+
+/** @typedef {Map<number, number[]>} Cache */
 
 const { isNaN, isFinite } = Number;
 const { ownKeys } = Reflect;
 const { is } = Object;
 
-const buffer = new ArrayBuffer(8);
-const f64a = new Float64Array(buffer);
-const u32a = new Uint32Array(buffer, 0, 1);
-const b64a = new BigInt64Array(buffer);
-const u8a8 = new Uint8Array(buffer);
-const u8a4 = new Uint8Array(buffer, 0, 4);
-
+/**
+ * @param {any} input
+ * @param {number[]} output
+ * @param {Cache} cache
+ * @returns {boolean}
+ */
 const process = (input, output, cache) => {
   const value = cache.get(input);
   const unknown = !value;
   if (unknown) {
-    u32a[0] = output.length;
+    dv.setUint32(0, output.length, true);
     cache.set(input, [...u8a4]);
   }
   else
@@ -58,11 +62,21 @@ const process = (input, output, cache) => {
   return unknown;
 };
 
+/**
+ * @param {number[]} output
+ * @param {number} type
+ * @param {number} length
+ */
 const set = (output, type, length) => {
-  u32a[0] = length;
+  dv.setUint32(0, length, true);
   output.push(type, ...u8a4);
 };
 
+/**
+ * @param {any} input
+ * @param {number[]} output
+ * @param {Cache} cache
+ */
 const inflate = (input, output, cache) => {
   switch (typeof input) {
     case 'object': {
@@ -147,7 +161,7 @@ const inflate = (input, output, cache) => {
     }
     case 'number':
       if (input && isFinite(input)) {
-        f64a[0] = input;
+        dv.setFloat64(0, input, true);
         output.push(NUMBER, ...u8a8);
       }
       else if (isNaN(input)) output.push(NAN);
@@ -158,7 +172,7 @@ const inflate = (input, output, cache) => {
       output.push(input ? TRUE : FALSE);
       break;
     case 'bigint': {
-      b64a[0] = input;
+      dv.setBigInt64(0, input, true);
       output.push(BIGINT, ...u8a8);
       break;
     }
@@ -175,7 +189,7 @@ const inflate = (input, output, cache) => {
  */
 export const encode = value => {
   const output = [];
-  inflate(value, output, new Map);
+  inflate(value, output,  new Map);
   return output;
 };
 
@@ -187,7 +201,10 @@ export const encoder = ({ byteOffset = 0 } = {}) => (value, buffer) => {
   const output = encode(value);
   const length = output.length;
   const size = length + byteOffset;
-  if (buffer.byteLength < size) buffer.grow(size);
+  if (buffer.byteLength < size) {
+    //@ts-ignore
+    buffer.grow(size);
+  }
   new Uint8Array(buffer, byteOffset, length).set(output);
   return length;
 };
