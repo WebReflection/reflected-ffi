@@ -6,7 +6,7 @@ import {
   ERROR,
 } from '../types.js';
 
-import { defineProperty } from '../utils/index.js';
+import { defineProperty, identity } from '../utils/index.js';
 import { arrayBuffer } from '../utils/typed.js';
 import canDecode from '../utils/sab-decoder.js';
 
@@ -61,14 +61,13 @@ const asVIEW = (dv, length, offset) => {
   return new globalThis[name](...args);
 };
 
-export const decode = (buffer, options) => {
-  const dv = options?.dataView || new DataView(buffer, options?.byteOffset || 0);
+const dvDecoder = (dv, direct = identity) => {
   const type = dv.getUint8(0);
   switch (type) {
     case BUFFER: return asBUFFER(dv, dv.getUint32(1, true), 5);
     case VIEW: return asVIEW(dv, dv.getUint32(1, true), 5);
     case STRING: return asSTRING(dv, dv.getUint32(1, true), 5);
-    case DIRECT: return [DIRECT, options.direct(asDIRECT(dv, dv.getUint32(1, true), 5))];
+    case DIRECT: return [DIRECT, direct(asDIRECT(dv, dv.getUint32(1, true), 5))];
     case ERROR: return asERROR(dv, dv.getUint32(1, true), 5);
     // DIRECT should never travel as such if no `direct` option is provided
     // {
@@ -81,4 +80,16 @@ export const decode = (buffer, options) => {
   }
 };
 
-export const decoder = options => (_, buffer) => decode(buffer, options);
+export const decode = (buffer, options) => dvDecoder(
+  options?.dataView || new DataView(buffer, options?.byteOffset || 0),
+  options?.direct
+);
+
+/* c8 ignore start */
+export const decoder = (options = {}) => (
+  'dataView' in options ?
+    //@ts-ignore
+    () => dvDecoder(options.dataView, options.direct) :
+    (_, buffer) => decode(buffer, options)
+);
+/* c8 ignore stop */
