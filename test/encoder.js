@@ -66,5 +66,6 @@ console.assert(decode(sab) === undefined);
 encode([DIRECT, 'ok'], sab, { direct: value => new TextEncoder().encode(value) });
 console.assert(decode(sab, { direct: value => new TextDecoder().decode(value) }).join(',') === `${DIRECT},ok`);
 
-// encode('ok', sab, { direct: value => new TextEncoder().encode(value) });
-// console.log(decode(sab, { direct: value => new TextDecoder().decode(value) }));
+encode(new TypeError('expected'), sab);
+console.assert(decode(sab) instanceof TypeError);
+console.assert(decode(sab).message === 'expected');

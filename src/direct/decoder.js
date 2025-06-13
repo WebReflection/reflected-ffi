@@ -31,14 +31,13 @@ import {
   RECURSION
 } from './types.js';
 
+import { defineProperty } from '../utils/index.js';
 import { fromSymbol } from '../utils/symbol.js';
 import { decoder as textDecoder } from '../utils/text.js';
 import canDecode from '../utils/sab-decoder.js';
 import { dv, u8a8 } from './views.js';
 
 /** @typedef {Map<number, any>} Cache */
-
-const { defineProperty } = Object;
 
 /**
  * @param {Cache} cache

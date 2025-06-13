@@ -4,11 +4,15 @@ import {
   BUFFER,
   STRING,
   VIEW,
+  ERROR,
 } from '../types.js';
 
 import { isArray } from '../utils/index.js';
 
 const { stringify } = JSON;
+
+//@ts-ignore
+const isError = Error.isError || (value => value instanceof Error);
 
 const resize = (buffer, size) => {
   if (buffer.byteLength < size) {
@@ -48,14 +52,21 @@ const asDIRECT = (value, buffer, offset) => {
   return length + 5;
 };
 
-const asSTRING = (value, buffer, offset) => {
-  const string = stringify(value) || '';
+const asJSON = (type, string, buffer, offset) => {
   const length = string.length;
   const double = length * 2;
-  const dv = init(STRING, buffer, length, double, offset);
+  const dv = init(type, buffer, length, double, offset);
   if (length) asUTF16Chars(dv, string, 5, length);
   return double + 5;
 };
+
+const asERROR = ({ name, message, stack }, buffer, offset) => asJSON(
+  ERROR, stringify({ name, message, stack }), buffer, offset
+);
+
+const asSTRING = (value, buffer, offset) => asJSON(
+  STRING, stringify(value) || '', buffer, offset
+);
 
 const asVIEW = ([name, args, byteOffset, length], buffer, offset) => {
   const nlength = name.length;
@@ -88,7 +99,13 @@ export const encode = (value, buffer, options) => {
       }
     }
   }
-  return asSTRING(value, buffer, byteOffset);
+  return (
+    // in case the proxy didn't manage to return due errors
+    // errors must be propagated as such
+    isError(value) ?
+      asERROR(value, buffer, byteOffset) :
+      asSTRING(value, buffer, byteOffset)
+  );
 };
 
 export const encoder = options => (value, buffer) => encode(value, buffer, options);

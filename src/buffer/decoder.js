@@ -3,8 +3,10 @@ import {
   BUFFER,
   STRING,
   VIEW,
+  ERROR,
 } from '../types.js';
 
+import { defineProperty } from '../utils/index.js';
 import { arrayBuffer } from '../utils/typed.js';
 import canDecode from '../utils/sab-decoder.js';
 
@@ -36,6 +38,12 @@ if (!canDecode) {
 }
 /* c8 ignore stop */
 
+const asERROR = (dv, length, offset) => {
+  const string = asUTF16Chars(dv, offset, length);
+  const { message, name, stack } = parse(string);
+  return defineProperty(new globalThis[name](message), 'stack', { value: stack });
+};
+
 const asSTRING = (dv, length, offset) => {
   const string = asUTF16Chars(dv, offset, length);
   return string.length ? parse(string) : void 0;
@@ -61,6 +69,7 @@ export const decode = (buffer, options) => {
     case VIEW: return asVIEW(dv, dv.getUint32(1, true), 5);
     case STRING: return asSTRING(dv, dv.getUint32(1, true), 5);
     case DIRECT: return [DIRECT, options.direct(asDIRECT(dv, dv.getUint32(1, true), 5))];
+    case ERROR: return asERROR(dv, dv.getUint32(1, true), 5);
     // DIRECT should never travel as such if no `direct` option is provided
     // {
     //   const indirect = !options?.direct;

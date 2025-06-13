@@ -7,6 +7,7 @@ export const SYMBOL: number;
 export const BIGINT: number;
 export const BUFFER: number;
 export const STRING: number;
+export const ERROR: number;
 export const VIEW: number;
 export const REMOTE_OBJECT: number;
 export const REMOTE_ARRAY: number;

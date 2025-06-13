@@ -5,6 +5,8 @@ import {
 
 import { fromSymbol, toSymbol } from './symbol.js';
 
+export const defineProperty = Object.defineProperty;
+
 export const assign = Object.assign;
 
 export const fromArray = Array.from;

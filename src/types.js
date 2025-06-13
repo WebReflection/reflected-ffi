@@ -7,6 +7,7 @@ export const SYMBOL           = 1 << 4;
 export const BIGINT           = 1 << 5;
 export const BUFFER           = 1 << 6;
 export const STRING           = 1 << 7;
+export const ERROR            = (1 << 8) + ~REMOTE;
 
 export const VIEW             = BUFFER | ARRAY;
 export const REMOTE_OBJECT    = REMOTE | OBJECT;
