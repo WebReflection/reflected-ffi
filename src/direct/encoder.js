@@ -41,16 +41,17 @@ const { is } = Object;
 
 const buffer = new ArrayBuffer(8);
 const f64a = new Float64Array(buffer);
-const u32a = new Uint32Array(buffer);
+const u32a = new Uint32Array(buffer, 0, 1);
 const b64a = new BigInt64Array(buffer);
-const u8a = new Uint8Array(buffer);
+const u8a8 = new Uint8Array(buffer);
+const u8a4 = new Uint8Array(buffer, 0, 4);
 
 const process = (input, output, cache) => {
   const value = cache.get(input);
   const unknown = !value;
   if (unknown) {
     u32a[0] = output.length;
-    cache.set(input, u8a.slice(0, 4));
+    cache.set(input, [...u8a4]);
   }
   else
     output.push(RECURSION, ...value);
@@ -59,7 +60,7 @@ const process = (input, output, cache) => {
 
 const set = (output, type, length) => {
   u32a[0] = length;
-  output.push(type, ...u8a.subarray(0, 4));
+  output.push(type, ...u8a4);
 };
 
 const inflate = (input, output, cache) => {
@@ -147,7 +148,7 @@ const inflate = (input, output, cache) => {
     case 'number':
       if (input && isFinite(input)) {
         f64a[0] = input;
-        output.push(NUMBER, ...u8a);
+        output.push(NUMBER, ...u8a8);
       }
       else if (isNaN(input)) output.push(NAN);
       else if (!input) output.push(is(input, 0) ? ZERO : N_ZERO);
@@ -158,7 +159,7 @@ const inflate = (input, output, cache) => {
       break;
     case 'bigint': {
       b64a[0] = input;
-      output.push(BIGINT, ...u8a);
+      output.push(BIGINT, ...u8a8);
       break;
     }
     // this covers functions too
