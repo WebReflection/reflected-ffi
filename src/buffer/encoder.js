@@ -57,12 +57,6 @@ const asSTRING = (value, buffer, offset) => {
   return double + 5;
 };
 
-const asVALUE = (direct, value, buffer, byteOffset) => (
-  direct ?
-    asDIRECT(direct(value), buffer, byteOffset) :
-    asSTRING(value, buffer, byteOffset)
-);
-
 const asVIEW = ([name, args, byteOffset, length], buffer, offset) => {
   const nlength = name.length;
   const utf16length = nlength * 2;
@@ -81,7 +75,10 @@ export const encode = (value, buffer, options) => {
     switch (t) {
       case BUFFER: return asBUFFER(v, buffer, byteOffset);
       case VIEW: return asVIEW(v, buffer, byteOffset);
-      case DIRECT: return asVALUE(options?.direct, v, buffer, byteOffset);
+      case DIRECT: return options?.direct ?
+        asDIRECT(options.direct(v), buffer, byteOffset) :
+        asSTRING(v, buffer, byteOffset)
+      ;
       default: if (t & REMOTE) {
         resize(buffer, byteOffset + 5);
         const dv = new DataView(buffer, byteOffset);
@@ -91,7 +88,7 @@ export const encode = (value, buffer, options) => {
       }
     }
   }
-  return asVALUE(options?.direct, value, buffer, byteOffset);
+  return asSTRING(value, buffer, byteOffset);
 };
 
 export const encoder = options => (value, buffer) => encode(value, buffer, options);
