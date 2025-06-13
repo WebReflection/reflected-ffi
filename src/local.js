@@ -1,4 +1,4 @@
-import DEBUG from './utils/debug.js';
+// import DEBUG from './utils/debug.js';
 
 import {
   UNREF,
@@ -210,9 +210,7 @@ export default ({
      */
     direct(value) {
       if (!hasDirect) {
-        /* c8 ignore start */
-        if (DEBUG) console.debug('DIRECT');
-        /* c8 ignore stop */
+        // if (DEBUG) console.debug('DIRECT');
         hasDirect = true;
         direct = new WeakSet;
       }
@@ -230,9 +228,7 @@ export default ({
      * @returns
      */
     reflect(method, uid, ...args) {
-      /* c8 ignore start */
-      if (DEBUG) console.debug(method === UNREF ? 'GC' : 'ROUNDTRIP');
-      /* c8 ignore stop */
+      // if (DEBUG) console.debug(method === UNREF ? 'GC' : 'ROUNDTRIP');
       const isGlobal = uid === null;
       const target = isGlobal ? globalThis : ref(uid);
       // the order is by most common use cases
