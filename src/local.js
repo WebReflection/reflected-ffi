@@ -222,7 +222,7 @@ export default ({
      * This callback reflects locally every remote call.
      * It accepts TypeValue pairs but it always returns a string
      * to make it possible to use Atomics and SharedArrayBuffer.
-     * @param {string} method
+     * @param {number} method
      * @param {number?} uid
      * @param  {...any} args
      * @returns

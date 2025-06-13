@@ -338,7 +338,7 @@ export default ({
      * The callback needed to resolve any local call. Currently only `apply` and `unref` are supported.
      * Its returned value will be understood by the remote implementation
      * and it is compatible with the structured clone algorithm.
-     * @param {string} method
+     * @param {number} method
      * @param {number?} uid
      * @param  {...any} args
      * @returns

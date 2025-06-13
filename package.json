@@ -88,7 +88,7 @@
     "debug": "echo 'export default true;' > ./src/utils/debug.js",
     "no-debug": "echo 'export default false;' > ./src/utils/debug.js",
     "test": "npm run no-debug && c8 node --expose-gc test/index.js",
-    "types": "tsc --allowJs --checkJs --lib dom,esnext --module esnext --target esnext -d --emitDeclarationOnly --outDir ./types ./src/*/*.js"
+    "types": "tsc --allowJs --checkJs --lib dom,esnext --module esnext --target esnext -d --emitDeclarationOnly --outDir ./types ./src/*.js ./src/*/*.js"
   },
   "devDependencies": {
     "c8": "^10.1.3",
