@@ -32,12 +32,11 @@ import {
   RECURSION
 } from './types.js';
 
-import { toSymbol } from '../utils/symbol.js';
-
 import { isArray, isView, push } from '../utils/index.js';
-import { toTag } from '../utils/global.js';
 import { encoder as textEncoder } from '../utils/text.js';
+import { toSymbol } from '../utils/symbol.js';
 import { dv, u8a8, u8a4 } from './views.js';
+import { toTag } from '../utils/global.js';
 
 /** @typedef {Map<number, number[]>} Cache */
 
@@ -56,10 +55,10 @@ const process = (input, output, cache) => {
   const unknown = !value;
   if (unknown) {
     dv.setUint32(0, output.length, true);
-    cache.set(input, [...u8a4]);
+    cache.set(input, [u8a4[0], u8a4[1], u8a4[2], u8a4[3]]);
   }
   else
-    output.push(RECURSION, ...value);
+    output.push(RECURSION, value[0], value[1], value[2], value[3]);
   return unknown;
 };
 
@@ -70,7 +69,7 @@ const process = (input, output, cache) => {
  */
 const set = (output, type, length) => {
   dv.setUint32(0, length, true);
-  output.push(type, ...u8a4);
+  output.push(type, u8a4[0], u8a4[1], u8a4[2], u8a4[3]);
 };
 
 /**
@@ -163,7 +162,7 @@ const inflate = (input, output, cache) => {
     case 'number':
       if (input && isFinite(input)) {
         dv.setFloat64(0, input, true);
-        output.push(NUMBER, ...u8a8);
+        output.push(NUMBER, u8a8[0], u8a8[1], u8a8[2], u8a8[3], u8a8[4], u8a8[5], u8a8[6], u8a8[7]);
       }
       else if (isNaN(input)) output.push(NAN);
       else if (!input) output.push(is(input, 0) ? ZERO : N_ZERO);
@@ -179,7 +178,7 @@ const inflate = (input, output, cache) => {
         type = BIGUINT;
       }
       else dv.setBigInt64(0, input, true);
-      output.push(type, ...u8a8);
+      output.push(type, u8a8[0], u8a8[1], u8a8[2], u8a8[3], u8a8[4], u8a8[5], u8a8[6], u8a8[7]);
       break;
     }
     // this covers functions too

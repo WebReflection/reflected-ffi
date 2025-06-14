@@ -6,7 +6,7 @@ import {
   ERROR,
 } from '../types.js';
 
-import { defineProperty } from '../utils/index.js';
+import { defineProperty, identity } from '../utils/index.js';
 import { arrayBuffer } from '../utils/typed.js';
 import canDecode from '../utils/sab-decoder.js';
 
@@ -61,7 +61,7 @@ const asVIEW = (dv, length, offset) => {
   return new globalThis[name](...args);
 };
 
-const dvDecoder = (dv, direct) => {
+const dvDecoder = (dv, direct = identity) => {
   const type = dv.getUint8(0);
   switch (type) {
     case BUFFER: return asBUFFER(dv, dv.getUint32(1, true), 5);

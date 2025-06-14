@@ -31,10 +31,9 @@ import {
   RECURSION
 } from './types.js';
 
+import { decoder as textDecoder } from '../utils/text.js';
 import { defineProperty } from '../utils/index.js';
 import { fromSymbol } from '../utils/symbol.js';
-import { decoder as textDecoder } from '../utils/text.js';
-import canDecode from '../utils/sab-decoder.js';
 import { dv, u8a8 } from './views.js';
 
 /** @typedef {Map<number, any>} Cache */
@@ -52,12 +51,11 @@ const $ = (cache, index, value) => {
 
 /**
  * @param {Uint8Array} input
- * @param {number} start
- * @param {number} end
+ * @param {number} index
  */
-const number = (input, start, end) => {
-  for (let i = 0; start < end; start++)
-    u8a8[i++] = input[start];
+const number = (input, index) => {
+  while (index < 8)
+    u8a8[index++] = input[i++];
 };
 
 /**
@@ -69,14 +67,6 @@ const size = (input, i) => {
   for (let j = 0; j < 4; j++) u8a8[j] = input[i++];
   return dv.getUint32(0, true);
 };
-
-/* c8 ignore start */
-const subarray = /** @type {(input:Uint8Array,start:number,end:number)=>Uint8Array} */(
-  canDecode ?
-    (input, start, end) => input.subarray(start, end) :
-    (input, start, end) => input.slice(start, end)
-);
-/* c8 ignore stop */
 
 /**
  * @param {Uint8Array} input
@@ -114,10 +104,12 @@ const deflate = (input, cache) => {
     case STRING: {
       const index = i - 1;
       const length = size(input, i);
-      return $(cache, index, textDecoder.decode(subarray(input, i += 4, i += length)));
+      // this could be a subarray but it's not supported on the Web and
+      // it wouldn't work with arrays instead of typed arrays.
+      return $(cache, index, textDecoder.decode(input.slice(i += 4, i += length)));
     }
     case NUMBER: {
-      number(input, i, i += 8);
+      number(input, 0);
       return dv.getFloat64(0, true);
     }
     case DATE: {
@@ -161,11 +153,11 @@ const deflate = (input, cache) => {
     case N_ZERO: return -0;
     case NULL: return null;
     case BIGINT: {
-      number(input, i, i += 8);
+      number(input, 0);
       return dv.getBigInt64(0, true);
     }
     case BIGUINT: {
-      number(input, i, i += 8);
+      number(input, 0);
       return dv.getBigUint64(0, true);
     }
     case SYMBOL: return fromSymbol(deflate(input, cache));
