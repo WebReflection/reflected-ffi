@@ -79,6 +79,8 @@ const asVIEW = ([name, args, byteOffset, length], buffer, offset) => {
   return offset + asBUFFER(args, buffer, offset);
 };
 
+// TODO: the problem with this approach is that this is *not*
+//       always invoked by the proxy (i.e. those traps returning boolean/keys)
 export const encode = (value, buffer, options) => {
   const byteOffset = options?.byteOffset || 0;
   if (isArray(value)) {
