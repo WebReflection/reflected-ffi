@@ -86,7 +86,7 @@ const {
  * @property {Function} [transform=identity] The function used to transform local values into simpler references that the remote side can understand.
  * @property {Function} [remote=identity] The function used to intercept remote invokes *before* these happen. Usable to sync `events` or do other tasks.
  * @property {Function} [module] The function used to import modules when remote asks to `import(...)` something.
- * @property {boolean} [buffer=false] Optionally allows direct buffer serialization breaking JSON compatibility. This requires the `encoder` on the local side and the `decoder` on the remote side.
+ * @property {boolean} [buffer=false] Optionally allows direct buffer serialization breaking JSON compatibility.
  */
 
 /**

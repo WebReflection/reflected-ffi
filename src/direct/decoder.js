@@ -7,6 +7,7 @@ import {
   NULL,
 
   NUMBER,
+  UI8,
   NAN,
   INFINITY,
   N_INFINITY,
@@ -75,6 +76,11 @@ const size = (input, i) => {
  */
 const deflate = (input, cache) => {
   switch (input[i++]) {
+    case NUMBER: {
+      number(input, 0);
+      return dv.getFloat64(0, true);
+    }
+    case UI8: return input[i++];
     case OBJECT: {
       const object = $(cache, i - 1, {});
       const length = size(input, i);
@@ -107,10 +113,6 @@ const deflate = (input, cache) => {
       // this could be a subarray but it's not supported on the Web and
       // it wouldn't work with arrays instead of typed arrays.
       return $(cache, index, textDecoder.decode(input.slice(i += 4, i += length)));
-    }
-    case NUMBER: {
-      number(input, 0);
-      return dv.getFloat64(0, true);
     }
     case DATE: {
       return $(cache, i - 1, new Date(deflate(input, cache)));

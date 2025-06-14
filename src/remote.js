@@ -74,6 +74,7 @@ const { preventExtensions } = Object;
  * @property {Function} [reflect=identity] The function used to reflect operations via the remote receiver. All `Reflect` methods + `unref` are supported.
  * @property {Function} [transform=identity] The function used to transform local values into simpler references that the remote side can understand.
  * @property {Function} [released=identity] The function invoked when a reference is released.
+ * @property {boolean} [buffer=false] Optionally allows direct buffer deserialization breaking JSON compatibility.
  */
 
 /**
@@ -84,6 +85,7 @@ export default ({
   reflect = identity,
   transform = identity,
   released = identity,
+  buffer = false,
 } = object) => {
   const fromKeys = loopValues(fromKey);
   const toKeys = loopValues(toKey);
@@ -98,8 +100,8 @@ export default ({
       case DIRECT: return v;
       case SYMBOL: return fromSymbol(v);
       case BIGINT: return BigInt(v);
-      case VIEW: return fromView(v);
-      case BUFFER: return fromBuffer(v);
+      case VIEW: return fromView(v, buffer);
+      case BUFFER: return fromBuffer(v, buffer);
       // there is no other case
     }
   };

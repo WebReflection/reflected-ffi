@@ -1,7 +1,7 @@
 import { toTag } from './global.js';
 import { fromArray } from './index.js';
 
-/** @typedef {[Uint8Array<ArrayBufferLike>|number[], number]} BufferDetails */
+/** @typedef {[ArrayBufferLike|number[], number]} BufferDetails */
 /** @typedef {[string, BufferDetails, number, number]} ViewDetails */
 
 export const arrayBuffer = (length, maxByteLength, value) => {
@@ -12,19 +12,21 @@ export const arrayBuffer = (length, maxByteLength, value) => {
 
 /**
  * @param {BufferDetails} details 
+ * @param {boolean} direct
  * @returns {ArrayBufferLike}
  */
-export const fromBuffer = ([value, maxByteLength]) => arrayBuffer(
-  value.length,
+export const fromBuffer = ([value, maxByteLength], direct) => arrayBuffer(
+  direct ? /** @type {ArrayBufferLike} */ (value).byteLength : /** @type {number[]} */ (value).length,
   maxByteLength,
   value,
 );
 
 /**
  * @param {ViewDetails} details
+ * @param {boolean} direct
  */
-export const fromView = ([name, args, byteOffset, length]) => {
-  const buffer = fromBuffer(args);
+export const fromView = ([name, args, byteOffset, length], direct) => {
+  const buffer = fromBuffer(args, direct);
   const Class = globalThis[name];
   return length ? new Class(buffer, byteOffset, length) : new Class(buffer, byteOffset);
 };
@@ -34,14 +36,11 @@ export const fromView = ([name, args, byteOffset, length]) => {
  * @param {boolean} direct
  * @returns {BufferDetails}
  */
-export const toBuffer = (value, direct) => {
-  const ui8a = new Uint8Array(value);
-  return [
-    direct ? ui8a : fromArray(ui8a),
-    //@ts-ignore
-    value.resizable ? value.maxByteLength : 0
-  ];
-};
+export const toBuffer = (value, direct) => [
+  direct ? value : fromArray(new Uint8Array(value)),
+  //@ts-ignore
+  value.resizable ? value.maxByteLength : 0
+];
 
 /**
  * @param {ArrayBufferView} value

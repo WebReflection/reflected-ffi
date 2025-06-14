@@ -3,6 +3,7 @@ export const TRUE: number;
 export const UNDEFINED: number;
 export const NULL: number;
 export const NUMBER: number;
+export const UI8: number;
 export const NAN: number;
 export const INFINITY: number;
 export const N_INFINITY: number;

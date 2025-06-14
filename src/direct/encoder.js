@@ -8,6 +8,7 @@ import {
   NULL,
 
   NUMBER,
+  UI8,
   NAN,
   INFINITY,
   N_INFINITY,
@@ -29,7 +30,7 @@ import {
   SET,
   VIEW,
 
-  RECURSION
+  RECURSION,
 } from './types.js';
 
 import { isArray, isView, push } from '../utils/index.js';
@@ -40,7 +41,7 @@ import { toTag } from '../utils/global.js';
 
 /** @typedef {Map<number, number[]>} Cache */
 
-const { isNaN, isFinite } = Number;
+const { isNaN, isFinite, isInteger } = Number;
 const { ownKeys } = Reflect;
 const { is } = Object;
 
@@ -79,69 +80,91 @@ const set = (output, type, length) => {
  */
 const inflate = (input, output, cache) => {
   switch (typeof input) {
-    case 'object': {
-      if (input === null) {
-        output.push(NULL);
-        break;
-      }
-      else if (!process(input, output, cache)) break;
-      else if (isArray(input)) {
-        const length = input.length;
-        set(output, ARRAY, length);
-        for (let i = 0; i < length; i++)
-          inflate(input[i], output, cache);
-      }
-      else if (isView(input)) {
-        output.push(VIEW);
-        inflate(toTag(input), output, cache);
-        inflate(input.buffer, output, cache);
-      }
-      else if (input instanceof ArrayBuffer) {
-        const ui8a = new Uint8Array(input);
-        set(output, BUFFER, ui8a.length);
-        push(output, ui8a);
-      }
-      else if (input instanceof Date) {
-        output.push(DATE);
-        inflate(input.getTime(), output, cache);
-      }
-      else if (input instanceof Map) {
-        set(output, MAP, input.size);
-        for (const [key, value] of input) {
-          inflate(key, output, cache);
-          inflate(value, output, cache);
-        }
-      }
-      else if (input instanceof Set) {
-        set(output, SET, input.size);
-        for (const value of input)
-          inflate(value, output, cache);
-      }
-      else if (input instanceof Error) {
-        output.push(ERROR);
-        inflate(input.name, output, cache);
-        inflate(input.message, output, cache);
-        inflate(input.stack, output, cache);
-      }
-      else if (input instanceof RegExp) {
-        output.push(REGEXP);
-        inflate(input.source, output, cache);
-        inflate(input.flags, output, cache);
-      }
-      else {
-        if ('toJSON' in input) {
-          const json = input.toJSON();
-          inflate(json === input ? null : json, output, cache);
-        }
+    case 'number': {
+      if (input && isFinite(input)) {
+        if (isInteger(input) && input < 256 && -1 < input)
+          output.push(UI8, input);
         else {
-          const keys = ownKeys(input);
-          const length = keys.length;
-          set(output, OBJECT, length);
-          for (let i = 0; i < length; i++) {
-            const key = keys[i];
+          dv.setFloat64(0, input, true);
+          output.push(NUMBER, u8a8[0], u8a8[1], u8a8[2], u8a8[3], u8a8[4], u8a8[5], u8a8[6], u8a8[7]);
+        }
+      }
+      else if (isNaN(input)) output.push(NAN);
+      else if (!input) output.push(is(input, 0) ? ZERO : N_ZERO);
+      else output.push(input < 0 ? N_INFINITY : INFINITY);
+      break;
+    }
+    case 'object': {
+      switch (true) {
+        case input === null:
+          output.push(NULL);
+          break;
+        case !process(input, output, cache): break;
+        case isArray(input): {
+          const length = input.length;
+          set(output, ARRAY, length);
+          for (let i = 0; i < length; i++)
+            inflate(input[i], output, cache);
+          break;
+        }
+        case isView(input): {
+          output.push(VIEW);
+          inflate(toTag(input), output, cache);
+          input = input.buffer;
+          if (!process(input, output, cache)) break;
+          // fallthrough
+        }
+        case input instanceof ArrayBuffer: {
+          const ui8a = new Uint8Array(input);
+          set(output, BUFFER, ui8a.length);
+          push(output, ui8a);
+          break;
+        }
+        case input instanceof Date:
+          output.push(DATE);
+          inflate(input.getTime(), output, cache);
+          break;
+        case input instanceof Map: {
+          set(output, MAP, input.size);
+          for (const [key, value] of input) {
             inflate(key, output, cache);
-            inflate(input[key], output, cache);
+            inflate(value, output, cache);
           }
+          break;
+        }
+        case input instanceof Set: {
+          set(output, SET, input.size);
+          for (const value of input)
+            inflate(value, output, cache);
+          break;
+        }
+        case input instanceof Error:
+          output.push(ERROR);
+          inflate(input.name, output, cache);
+          inflate(input.message, output, cache);
+          inflate(input.stack, output, cache);
+          break;
+        case input instanceof RegExp:
+          output.push(REGEXP);
+          inflate(input.source, output, cache);
+          inflate(input.flags, output, cache);
+          break;
+        default: {
+          if ('toJSON' in input) {
+            const json = input.toJSON();
+            inflate(json === input ? null : json, output, cache);
+          }
+          else {
+            const keys = ownKeys(input);
+            const length = keys.length;
+            set(output, OBJECT, length);
+            for (let i = 0; i < length; i++) {
+              const key = keys[i];
+              inflate(key, output, cache);
+              inflate(input[key], output, cache);
+            }
+          }
+          break;
         }
       }
       break;
@@ -154,23 +177,15 @@ const inflate = (input, output, cache) => {
       }
       break;
     }
+    case 'boolean': {
+      output.push(input ? TRUE : FALSE);
+      break;
+    }
     case 'symbol': {
       output.push(SYMBOL);
       inflate(toSymbol(input), output, cache);
       break;
     }
-    case 'number':
-      if (input && isFinite(input)) {
-        dv.setFloat64(0, input, true);
-        output.push(NUMBER, u8a8[0], u8a8[1], u8a8[2], u8a8[3], u8a8[4], u8a8[5], u8a8[6], u8a8[7]);
-      }
-      else if (isNaN(input)) output.push(NAN);
-      else if (!input) output.push(is(input, 0) ? ZERO : N_ZERO);
-      else output.push(input < 0 ? N_INFINITY : INFINITY);
-      break;
-    case 'boolean':
-      output.push(input ? TRUE : FALSE);
-      break;
     case 'bigint': {
       let type = BIGINT;
       if (9223372036854775807n < input) {
@@ -182,9 +197,10 @@ const inflate = (input, output, cache) => {
       break;
     }
     // this covers functions too
-    default:
+    default: {
       output.push(UNDEFINED);
       break;
+    }
   }
 };
 

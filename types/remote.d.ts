@@ -1,4 +1,4 @@
-declare function _default({ reflect, transform, released, }?: RemoteOptions): {
+declare function _default({ reflect, transform, released, buffer, }?: RemoteOptions): {
     /**
      * The local global proxy reference.
      * @type {unknown}
@@ -67,4 +67,8 @@ export type RemoteOptions = {
      * The function invoked when a reference is released.
      */
     released?: Function;
+    /**
+     * Optionally allows direct buffer deserialization breaking JSON compatibility.
+     */
+    buffer?: boolean;
 };

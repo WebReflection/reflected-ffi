@@ -7,6 +7,7 @@ export const UNDEFINED = i++;
 export const NULL = i++;
 
 export const NUMBER = i++;
+export const UI8 = i++;
 export const NAN = i++;
 export const INFINITY = i++;
 export const N_INFINITY = i++;

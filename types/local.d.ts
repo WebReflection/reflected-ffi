@@ -45,7 +45,7 @@ export type LocalOptions = {
      */
     module?: Function;
     /**
-     * Optionally allows direct buffer serialization breaking JSON compatibility. This requires the `encoder` on the local side and the `decoder` on the remote side.
+     * Optionally allows direct buffer serialization breaking JSON compatibility.
      */
     buffer?: boolean;
 };
