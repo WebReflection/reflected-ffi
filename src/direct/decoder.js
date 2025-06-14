@@ -55,8 +55,7 @@ const $ = (cache, index, value) => {
  * @param {number} index
  */
 const number = (input, index) => {
-  while (index < 8)
-    u8a8[index++] = input[i++];
+  while (index < 8) u8a8[index++] = input[i++];
 };
 
 /**
