@@ -223,18 +223,7 @@ export const encode = value => {
  */
 export const encoder = ({ byteOffset = 0, splitViews = false } = {}) => (value, buffer) => {
   let output = [], views = output;
-  pushView = splitViews ?
-    (views = [], (output, value) => {
-      const length = value.length;
-      // avoid complexity for small buffers (short keys and whatnot)
-      if (length < 129) output.push.apply(output, value);
-      else {
-        views.push([output.length, value]);
-        output.length += value.length;
-      }
-    }) :
-    push
-  ;
+  pushView = splitViews ? split.bind((views = [])) : push;
   inflate(value, output,  new Map);
   const length = output.length;
   const size = length + byteOffset;
@@ -251,3 +240,17 @@ export const encoder = ({ byteOffset = 0, splitViews = false } = {}) => (value, 
   }
   return length;
 };
+
+/**
+ * @param {number[]} output
+ * @param {Uint8Array} value 
+ */
+function split(output, value) {
+  const length = value.length;
+  // avoid complexity for small buffers (short keys and whatnot)
+  if (length < 129) output.push.apply(output, value);
+  else {
+    this.push([output.length, value]);
+    output.length += value.length;
+  }
+}

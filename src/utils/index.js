@@ -69,6 +69,10 @@ export const toKey = value => typeof value === 'string' ?
 
 const MAX_ARGS = 0x7FFF;
 
+/**
+ * @param {number[]} output
+ * @param {Uint8Array} value 
+ */
 export const push = (output, value) => {
   for (let $ = output.push, i = 0, length = value.length; i < length; i += MAX_ARGS)
     $.apply(output, value.subarray(i, i + MAX_ARGS));
