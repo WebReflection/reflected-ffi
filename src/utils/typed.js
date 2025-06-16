@@ -4,22 +4,34 @@ import { fromArray } from './index.js';
 /** @typedef {[ArrayBufferLike|number[], number]} BufferDetails */
 /** @typedef {[string, BufferDetails, number, number]} ViewDetails */
 
-export const arrayBuffer = (length, maxByteLength, value) => {
-  const buffer = maxByteLength ? new ArrayBuffer(length, { maxByteLength }) : new ArrayBuffer(length);
-  new Uint8Array(buffer).set(value);
-  return buffer;
-};
+/**
+ * @param {number} length
+ * @param {number} maxByteLength
+ * @returns {ArrayBufferLike}
+ */
+const resizable = (length, maxByteLength) => new ArrayBuffer(length, { maxByteLength });
 
 /**
  * @param {BufferDetails} details 
  * @param {boolean} direct
  * @returns {ArrayBufferLike}
  */
-export const fromBuffer = ([value, maxByteLength], direct) => arrayBuffer(
-  direct ? /** @type {ArrayBufferLike} */ (value).byteLength : /** @type {number[]} */ (value).length,
-  maxByteLength,
-  value,
-);
+export const fromBuffer = ([value, maxByteLength], direct) => {
+  const length = direct ? /** @type {ArrayBufferLike} */ (value).byteLength : /** @type {number[]} */ (value).length;
+  if (direct) {
+    if (maxByteLength) {
+      const buffer = resizable(length, maxByteLength);
+      new Uint8Array(buffer).set(new Uint8Array(/** @type {ArrayBufferLike} */ (value)));
+      value = buffer;
+    }
+  }
+  else {
+    const buffer = maxByteLength ? resizable(length, maxByteLength) : new ArrayBuffer(length);
+    new Uint8Array(buffer).set(/** @type {number[]} */ (value));
+    value = buffer;
+  }
+  return /** @type {ArrayBufferLike} */ (value);
+};
 
 /**
  * @param {ViewDetails} details

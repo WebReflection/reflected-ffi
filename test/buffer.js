@@ -1,19 +1,16 @@
 import local from '../src/local.js';
 import remote from '../src/remote.js';
-import './symbol.js';
-import './global.js';
-import './view.js';
-import './direct.js';
-import './buffer.js';
 
 const array = [1, 2, 3];
 
 const there = remote({
+  buffer: true,
   reflect: (...args) => here.reflect(...args),
   transform: value => value === array ? there.direct(array) : value,
 });
 
 const here = local({
+  buffer: true,
   reflect: (...args) => there.reflect(...args),
   transform: value => value === array ? here.direct(array) : value,
 });
@@ -115,14 +112,15 @@ obj = there.assign({}, { value: 1 });
 console.assert(there.gather(obj, 'value')[0] === 1);
 console.assert(there.gather(obj, 'value').length === 1);
 
+global.console.log(new Uint8Array([1, 2, 3]));
+console.log(new global.Uint8Array([1, 2, 3]));
+
 obj = null;
 global.trapped = null;
 
 try {
   setTimeout(gc);
-  global.console.log.call(global.console, 'gc', 'scheduled');
 } catch (e) {
-  global.console.log.call(global.console, 'no', 'gc');
 }
 finally {
   setTimeout(function () {

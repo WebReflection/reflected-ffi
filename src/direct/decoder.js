@@ -52,19 +52,27 @@ const $ = (cache, index, value) => {
 
 /**
  * @param {Uint8Array} input
- * @param {number} index
  */
-const number = (input, index) => {
-  while (index < 8) u8a8[index++] = input[i++];
+const number = input => {
+  u8a8[0] = input[i++];
+  u8a8[1] = input[i++];
+  u8a8[2] = input[i++];
+  u8a8[3] = input[i++];
+  u8a8[4] = input[i++];
+  u8a8[5] = input[i++];
+  u8a8[6] = input[i++];
+  u8a8[7] = input[i++];
 };
 
 /**
  * @param {Uint8Array} input
- * @param {number} i
  * @returns {number}
  */
-const size = (input, i) => {
-  for (let j = 0; j < 4; j++) u8a8[j] = input[i++];
+const size = input => {
+  u8a8[0] = input[i++];
+  u8a8[1] = input[i++];
+  u8a8[2] = input[i++];
+  u8a8[3] = input[i++];
   return dv.getUint32(0, true);
 };
 
@@ -76,23 +84,19 @@ const size = (input, i) => {
 const deflate = (input, cache) => {
   switch (input[i++]) {
     case NUMBER: {
-      number(input, 0);
+      number(input);
       return dv.getFloat64(0, true);
     }
     case UI8: return input[i++];
     case OBJECT: {
       const object = $(cache, i - 1, {});
-      const length = size(input, i);
-      i += 4;
-      for (let j = 0; j < length; j++)
+      for (let j = 0, length = size(input); j < length; j++)
         object[deflate(input, cache)] = deflate(input, cache);
       return object;
     }
     case ARRAY: {
       const array = $(cache, i - 1, []);
-      const length = size(input, i);
-      i += 4;
-      for (let j = 0; j < length; j++)
+      for (let j = 0, length = size(input); j < length; j++)
         array.push(deflate(input, cache));
       return array;
     }
@@ -103,32 +107,28 @@ const deflate = (input, cache) => {
     }
     case BUFFER: {
       const index = i - 1;
-      const length = size(input, i);
-      return $(cache, index, input.slice(i += 4, i += length).buffer);
+      const length = size(input);
+      return $(cache, index, input.slice(i, i += length).buffer);
     }
     case STRING: {
       const index = i - 1;
-      const length = size(input, i);
+      const length = size(input);
       // this could be a subarray but it's not supported on the Web and
       // it wouldn't work with arrays instead of typed arrays.
-      return $(cache, index, textDecoder.decode(input.slice(i += 4, i += length)));
+      return $(cache, index, textDecoder.decode(input.slice(i, i += length)));
     }
     case DATE: {
       return $(cache, i - 1, new Date(deflate(input, cache)));
     }
     case MAP: {
       const map = $(cache, i - 1, new Map);
-      const length = size(input, i);
-      i += 4;
-      for (let j = 0; j < length; j++)
+      for (let j = 0, length = size(input); j < length; j++)
         map.set(deflate(input, cache), deflate(input, cache));
       return map;
     }
     case SET: {
       const set = $(cache, i - 1, new Set);
-      const length = size(input, i);
-      i += 4;
-      for (let j = 0; j < length; j++)
+      for (let j = 0, length = size(input); j < length; j++)
         set.add(deflate(input, cache));
       return set;
     }
@@ -153,20 +153,10 @@ const deflate = (input, cache) => {
     case ZERO: return 0;
     case N_ZERO: return -0;
     case NULL: return null;
-    case BIGINT: {
-      number(input, 0);
-      return dv.getBigInt64(0, true);
-    }
-    case BIGUINT: {
-      number(input, 0);
-      return dv.getBigUint64(0, true);
-    }
+    case BIGINT: return (number(input), dv.getBigInt64(0, true));
+    case BIGUINT: return (number(input), dv.getBigUint64(0, true));
     case SYMBOL: return fromSymbol(deflate(input, cache));
-    case RECURSION: {
-      const index = size(input, i);
-      i += 4;
-      return cache.get(index);
-    }
+    case RECURSION: return cache.get(size(input));
     // this covers functions too
     default: return undefined;
   }
