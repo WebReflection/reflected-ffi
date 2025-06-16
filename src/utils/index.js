@@ -70,6 +70,6 @@ export const toKey = value => typeof value === 'string' ?
 const MAX_ARGS = 0x7FFF;
 
 export const push = (output, value) => {
-  for (let i = 0, length = value.length; i < length; i += MAX_ARGS)
-    output.push.apply(output, value.subarray(i, i + MAX_ARGS));
+  for (let $ = output.push, i = 0, length = value.length; i < length; i += MAX_ARGS)
+    $.apply(output, value.subarray(i, i + MAX_ARGS));
 };

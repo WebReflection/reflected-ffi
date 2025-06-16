@@ -1,4 +1,3 @@
-export function arrayBuffer(length: any, maxByteLength: any, value: any): ArrayBuffer;
 export function fromBuffer([value, maxByteLength]: BufferDetails, direct: boolean): ArrayBufferLike;
 export function fromView([name, args, byteOffset, length]: ViewDetails, direct: boolean): any;
 export function toBuffer(value: ArrayBufferLike, direct: boolean): BufferDetails;

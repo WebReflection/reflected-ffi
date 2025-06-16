@@ -36,7 +36,7 @@ import {
 import { isArray, isView, push } from '../utils/index.js';
 import { encoder as textEncoder } from '../utils/text.js';
 import { toSymbol } from '../utils/symbol.js';
-import { dv, u8a8, u8a4 } from './views.js';
+import { dv, u8a8 } from './views.js';
 import { toTag } from '../utils/global.js';
 
 /** @typedef {Map<number, number[]>} Cache */
@@ -56,7 +56,7 @@ const process = (input, output, cache) => {
   const unknown = !value;
   if (unknown) {
     dv.setUint32(0, output.length, true);
-    cache.set(input, [u8a4[0], u8a4[1], u8a4[2], u8a4[3]]);
+    cache.set(input, [u8a8[0], u8a8[1], u8a8[2], u8a8[3]]);
   }
   else
     output.push(RECURSION, value[0], value[1], value[2], value[3]);
@@ -70,7 +70,7 @@ const process = (input, output, cache) => {
  */
 const set = (output, type, length) => {
   dv.setUint32(0, length, true);
-  output.push(type, u8a4[0], u8a4[1], u8a4[2], u8a4[3]);
+  output.push(type, u8a8[0], u8a8[1], u8a8[2], u8a8[3]);
 };
 
 /**
@@ -117,7 +117,7 @@ const inflate = (input, output, cache) => {
         case input instanceof ArrayBuffer: {
           const ui8a = new Uint8Array(input);
           set(output, BUFFER, ui8a.length);
-          push(output, ui8a);
+          pushView(output, ui8a);
           break;
         }
         case input instanceof Date:
@@ -173,7 +173,7 @@ const inflate = (input, output, cache) => {
       if (process(input, output, cache)) {
         const encoded = textEncoder.encode(input);
         set(output, STRING, encoded.length);
-        push(output, encoded);
+        pushView(output, encoded);
       }
       break;
     }
@@ -204,22 +204,38 @@ const inflate = (input, output, cache) => {
   }
 };
 
+let pushView = push;
+
 /**
  * @param {any} value
  * @returns {number[]}
  */
 export const encode = value => {
   const output = [];
+  pushView = push;
   inflate(value, output,  new Map);
   return output;
 };
 
 /**
- * @param {{ byteOffset?: number }} [options]
+ * @param {{ byteOffset?: number, splitViews?: boolean }} [options]
  * @returns {(value: any, buffer: SharedArrayBuffer) => number}
  */
-export const encoder = ({ byteOffset = 0 } = {}) => (value, buffer) => {
-  const output = encode(value);
+export const encoder = ({ byteOffset = 0, splitViews = false } = {}) => (value, buffer) => {
+  let output = [], views = output;
+  pushView = splitViews ?
+    (views = [], (output, value) => {
+      const length = value.length;
+      // avoid complexity for small buffers (short keys and whatnot)
+      if (length < 129) output.push.apply(output, value);
+      else {
+        views.push([output.length, value]);
+        output.length += value.length;
+      }
+    }) :
+    push
+  ;
+  inflate(value, output,  new Map);
   const length = output.length;
   const size = length + byteOffset;
   if (buffer.byteLength < size) {
@@ -227,5 +243,11 @@ export const encoder = ({ byteOffset = 0 } = {}) => (value, buffer) => {
     buffer.grow(size);
   }
   new Uint8Array(buffer, byteOffset, length).set(output);
+  if (splitViews) {
+    for (let i = 0, length = views.length; i < length; i++) {
+      const [offset, value] = views[i];
+      new Uint8Array(buffer, byteOffset + offset, value.length).set(value);
+    }
+  }
   return length;
 };

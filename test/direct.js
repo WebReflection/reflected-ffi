@@ -30,6 +30,7 @@ assert(undefined);
 assert(1n);
 assert(-1n);
 assert('test');
+assert('a'.repeat(200));
 assert('🥳');
 assert(['a', 'b', 'a']);
 assert(Symbol.iterator);
@@ -52,10 +53,25 @@ console.assert(roundtrip(new Int32Array([1, 2, 3])).join(',') === '1,2,3');
 console.assert(roundtrip({ toJSON: () => 123 }) === 123);
 console.assert(roundtrip({ toJSON() { return this }}) === null);
 
-const sab = new SharedArrayBuffer(4, { maxByteLength: 100 });
+const sab = new SharedArrayBuffer(4, { maxByteLength: 1024 });
 const enc = encoder({ byteOffset: 0 });
 const dec = decoder({ byteOffset: 0 });
 
 const written = enc('hello encoder', sab);
 console.assert(written === 5 + 'hello encoder'.length);
 console.assert(dec(written, sab) === 'hello encoder');
+
+const venc = encoder({ byteOffset: 0, splitViews: true });
+console.assert(venc('a'.repeat(200), sab) === 205);
+console.assert(dec(205, sab) === 'a'.repeat(200));
+console.assert(venc('a'.repeat(10), sab) === 15);
+console.assert(dec(15, sab) === 'a'.repeat(10));
+
+const ab = new ArrayBuffer(4, { maxByteLength: 8 });
+const ui8a = dec(venc([new Uint8Array(ab), new Uint8Array(ab)], sab), sab);
+console.assert(ui8a.length === 2);
+console.assert(ui8a[0].length === 4);
+console.assert(ui8a[1].length === 4);
+console.assert(ui8a[0] !== ui8a[1]);
+console.assert(ui8a[0] instanceof Uint8Array);
+console.assert(ui8a[1] instanceof Uint8Array);
