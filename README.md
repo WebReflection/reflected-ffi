@@ -119,17 +119,9 @@ the need to proxy values that are meant to be consumed and forgotten right away.
 import local from 'reflected-ffi/local';
 import { encoder } from 'reflected-ffi/encoder';
 
-// any buffered based serializer
-import BufferedClone from 'buffered-clone';
-const { encode } = new BufferedClone;
-
-const encodeInto = encoder({
-  // keep room to notify at index 0
-  byteOffset: 4,
-  // provide a direct encoder or, if omitted,
-  // a simple JSON serializer is used instead
-  direct: value => encode(value)
-  // must be instanceof Uint8Array
+const encode = encoder({
+  // keep room to notify at index 0 and store length at 1
+  byteOffset: 8,
 });
 
 const remote = new Worker('./remote.js', { type: 'module' });
@@ -147,8 +139,8 @@ remote.onmessage = ({ data: [i32a, [trap, ...rest]] }) => {
   // ignore `unref` (its value is `0`) as it doesn't need Atomics
   if (!trap) return;
 
-  // store it into the SharedArrayBuffer
-  encodeInto(reflect(...args), i32a.buffer);
+  // store it into the SharedArrayBuffer + set written length
+  i32a[1] = encode(reflect(...args), i32a.buffer);
   // notify at index 0 it's all good
   i32a[0] = 1;
   Atomics.notify(i32a, 0);

@@ -4,11 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script type="module">
-    import './encoder.js';
     import './direct.js';
     import nextResolver from 'https://esm.run/next-resolver';
     import local from '../src/local.js';
-    import { encode } from '../src/buffer/encoder.js';
+    import { encoder } from '../src/direct/encoder.js';
+  
+    const encode = encoder({ byteOffset: 8 });
 
     globalThis.testArray = [];
     globalThis.testObject = {};
@@ -32,7 +33,7 @@
       else {
         const result = reflect(...args);
         if (args[0]) {
-          encode(result, i32a.buffer, { byteOffset: 4 });
+          i32a[1] = encode(result, i32a.buffer);
           i32a[0] = 1;
           Atomics.notify(i32a, 0);
         }

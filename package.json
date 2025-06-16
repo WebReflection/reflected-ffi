@@ -13,20 +13,16 @@
   ],
   "exports": {
     "./encoder": {
-      "types": "./types/buffer/encoder.d.ts",
-      "import": "./src/buffer/encoder.js"
-    },
-    "./decoder": {
-      "types": "./types/buffer/decoder.d.ts",
-      "import": "./src/buffer/decoder.js"
-    },
-    "./direct/encoder": {
       "types": "./types/direct/encoder.d.ts",
       "import": "./src/direct/encoder.js"
     },
-    "./direct/decoder": {
+    "./decoder": {
       "types": "./types/direct/decoder.d.ts",
       "import": "./src/direct/decoder.js"
+    },
+    "./direct": {
+      "types": "./types/direct/index.d.ts",
+      "import": "./src/direct/index.js"
     },
     "./evaluate": {
       "types": "./types/utils/evaluate.d.ts",

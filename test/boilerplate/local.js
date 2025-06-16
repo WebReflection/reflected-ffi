@@ -1,9 +1,8 @@
 import nextResolver from 'https://esm.run/next-resolver';
 const [next, resolve] = nextResolver();
 
-import { encoder } from '../../src/buffer/encoder.js';
-import { encode as direct } from '../../src/direct/encoder.js';
-const encode = encoder({ byteOffset: 4, direct });
+import { encoder } from '../../src/direct/encoder.js';
+const encode = encoder({ byteOffset: 8 });
 
 import local from '../../src/local.js';
 
@@ -30,7 +29,7 @@ export default (url, options) => {
     else {
       const result = reflect(...args);
       if (args[0]) {
-        encode(result, i32a.buffer);
+        i32a[1] = encode(result, i32a.buffer);
         i32a[0] = 1;
         Atomics.notify(i32a, 0);
       }
