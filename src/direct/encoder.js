@@ -33,6 +33,7 @@ import {
   RECURSION,
 } from './types.js';
 
+import BufferedArray from './array.js';
 import { isArray, isView, push } from '../utils/index.js';
 import { encoder as textEncoder } from '../utils/text.js';
 import { toSymbol } from '../utils/symbol.js';
@@ -47,7 +48,7 @@ const { is } = Object;
 
 /**
  * @param {any} input
- * @param {number[]} output
+ * @param {number[]|BufferedArray} output
  * @param {Cache} cache
  * @returns {boolean}
  */
@@ -64,7 +65,7 @@ const process = (input, output, cache) => {
 };
 
 /**
- * @param {number[]} output
+ * @param {number[]|BufferedArray} output
  * @param {number} type
  * @param {number} length
  */
@@ -75,7 +76,7 @@ const set = (output, type, length) => {
 
 /**
  * @param {any} input
- * @param {number[]} output
+ * @param {number[]|BufferedArray} output
  * @param {Cache} cache
  */
 const inflate = (input, output, cache) => {
@@ -117,7 +118,8 @@ const inflate = (input, output, cache) => {
         case input instanceof ArrayBuffer: {
           const ui8a = new Uint8Array(input);
           set(output, BUFFER, ui8a.length);
-          push(output, ui8a);
+          //@ts-ignore
+          pushView(output, ui8a);
           break;
         }
         case input instanceof Date:
@@ -173,7 +175,8 @@ const inflate = (input, output, cache) => {
       if (process(input, output, cache)) {
         const encoded = textEncoder.encode(input);
         set(output, STRING, encoded.length);
-        push(output, encoded);
+        //@ts-ignore
+        pushView(output, encoded);
       }
       break;
     }
@@ -204,12 +207,16 @@ const inflate = (input, output, cache) => {
   }
 };
 
+/** @type {typeof push|typeof BufferedArray.push} */
+let pushView = push;
+
 /**
  * @param {any} value
  * @returns {number[]}
  */
 export const encode = value => {
   const output = [];
+  pushView = push;
   inflate(value, output, new Map);
   return output;
 };
@@ -219,11 +226,8 @@ export const encode = value => {
  * @returns {(value: any, buffer: SharedArrayBuffer) => number}
  */
 export const encoder = ({ byteOffset = 0 } = {}) => (value, buffer) => {
-  const output = encode(value);
-  const length = output.length;
-  const size = length + byteOffset;
-  //@ts-ignore
-  if (buffer.byteLength < size) buffer.grow(size);
-  new Uint8Array(buffer, byteOffset, length).set(output);
-  return length;
+  const output = new BufferedArray(buffer, byteOffset);
+  pushView = BufferedArray.push;
+  inflate(value, output, new Map);
+  return output.length;
 };
