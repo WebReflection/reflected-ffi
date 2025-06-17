@@ -1,6 +1,5 @@
 export function encode(value: any): number[];
-export function encoder({ byteOffset, splitViews }?: {
+export function encoder({ byteOffset }?: {
     byteOffset?: number;
-    splitViews?: boolean;
 }): (value: any, buffer: SharedArrayBuffer) => number;
 export type Cache = Map<number, number[]>;

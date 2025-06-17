@@ -117,7 +117,7 @@ const inflate = (input, output, cache) => {
         case input instanceof ArrayBuffer: {
           const ui8a = new Uint8Array(input);
           set(output, BUFFER, ui8a.length);
-          pushView(output, ui8a);
+          push(output, ui8a);
           break;
         }
         case input instanceof Date:
@@ -173,7 +173,7 @@ const inflate = (input, output, cache) => {
       if (process(input, output, cache)) {
         const encoded = textEncoder.encode(input);
         set(output, STRING, encoded.length);
-        pushView(output, encoded);
+        push(output, encoded);
       }
       break;
     }
@@ -204,55 +204,26 @@ const inflate = (input, output, cache) => {
   }
 };
 
-let pushView = push;
-
 /**
  * @param {any} value
  * @returns {number[]}
  */
 export const encode = value => {
   const output = [];
-  pushView = push;
   inflate(value, output, new Map);
   return output;
 };
 
 /**
- * @param {{ byteOffset?: number, splitViews?: boolean }} [options]
+ * @param {{ byteOffset?: number }} [options]
  * @returns {(value: any, buffer: SharedArrayBuffer) => number}
  */
-export const encoder = ({ byteOffset = 0, splitViews = false } = {}) => {
-  /** @type {Array<[number, Uint8Array]>} */
-  const views = [];
-
-  /** @type {(output: number[], value: Uint8Array) => void} */
-  const _push = splitViews ?
-    ((output, value) => {
-      const length = value.length;
-      // avoid complexity for small buffers (short keys and whatnot)
-      if (length < 256)
-        output.push.apply(output, value);
-      else {
-        views.push([output.length, value]);
-        output.length += value.length;
-      }
-    }) :
-    push
-  ;
-
-  return (value, buffer) => {
-    const output = [];
-    pushView = _push;
-    inflate(value, output, new Map);
-    const length = output.length;
-    const size = length + byteOffset;
-    //@ts-ignore
-    if (buffer.byteLength < size) buffer.grow(size);
-    new Uint8Array(buffer, byteOffset, length).set(output);
-    if (splitViews && views.length) {
-      for (const [offset, value] of views.splice(0))
-        new Uint8Array(buffer, byteOffset + offset, value.length).set(value);
-    }
-    return length;
-  };
+export const encoder = ({ byteOffset = 0 } = {}) => (value, buffer) => {
+  const output = encode(value);
+  const length = output.length;
+  const size = length + byteOffset;
+  //@ts-ignore
+  if (buffer.byteLength < size) buffer.grow(size);
+  new Uint8Array(buffer, byteOffset, length).set(output);
+  return length;
 };
