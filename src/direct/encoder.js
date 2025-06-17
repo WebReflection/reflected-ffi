@@ -213,7 +213,7 @@ let pushView = push;
 export const encode = value => {
   const output = [];
   pushView = push;
-  inflate(value, output,  new Map);
+  inflate(value, output, new Map);
   return output;
 };
 
@@ -221,36 +221,38 @@ export const encode = value => {
  * @param {{ byteOffset?: number, splitViews?: boolean }} [options]
  * @returns {(value: any, buffer: SharedArrayBuffer) => number}
  */
-export const encoder = ({ byteOffset = 0, splitViews = false } = {}) => (value, buffer) => {
-  let output = [], views = output;
-  pushView = splitViews ? split.bind((views = [])) : push;
-  inflate(value, output,  new Map);
-  const length = output.length;
-  const size = length + byteOffset;
-  if (buffer.byteLength < size) {
-    //@ts-ignore
-    buffer.grow(size);
-  }
-  new Uint8Array(buffer, byteOffset, length).set(output);
-  if (splitViews) {
-    for (let i = 0, length = views.length; i < length; i++) {
-      const [offset, value] = views[i];
-      new Uint8Array(buffer, byteOffset + offset, value.length).set(value);
-    }
-  }
-  return length;
-};
+export const encoder = ({ byteOffset = 0, splitViews = false } = {}) => {
+  /** @type {Array<[number, Uint8Array]>} */
+  const views = [];
 
-/**
- * @param {number[]} output
- * @param {Uint8Array} value 
- */
-function split(output, value) {
-  const length = value.length;
-  // avoid complexity for small buffers (short keys and whatnot)
-  if (length < 129) output.push.apply(output, value);
-  else {
-    this.push([output.length, value]);
-    output.length += value.length;
-  }
-}
+  /** @type {(output: number[], value: Uint8Array) => void} */
+  const _push = splitViews ?
+    ((output, value) => {
+      const length = value.length;
+      // avoid complexity for small buffers (short keys and whatnot)
+      if (length < 256)
+        output.push.apply(output, value);
+      else {
+        views.push([output.length, value]);
+        output.length += value.length;
+      }
+    }) :
+    push
+  ;
+
+  return (value, buffer) => {
+    const output = [];
+    pushView = _push;
+    inflate(value, output, new Map);
+    const length = output.length;
+    const size = length + byteOffset;
+    //@ts-ignore
+    if (buffer.byteLength < size) buffer.grow(size);
+    new Uint8Array(buffer, byteOffset, length).set(output);
+    if (splitViews && views.length) {
+      for (const [offset, value] of views.splice(0))
+        new Uint8Array(buffer, byteOffset + offset, value.length).set(value);
+    }
+    return length;
+  };
+};

@@ -62,8 +62,8 @@ console.assert(written === 5 + 'hello encoder'.length);
 console.assert(dec(written, sab) === 'hello encoder');
 
 const venc = encoder({ byteOffset: 0, splitViews: true });
-console.assert(venc('a'.repeat(200), sab) === 205);
-console.assert(dec(205, sab) === 'a'.repeat(200));
+console.assert(venc('a'.repeat(256), sab) === 261);
+console.assert(dec(261, sab) === 'a'.repeat(256));
 console.assert(venc('a'.repeat(10), sab) === 15);
 console.assert(dec(15, sab) === 'a'.repeat(10));
 
