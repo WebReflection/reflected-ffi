@@ -30,6 +30,10 @@ export default class BufferedArray {
   }
 
   get length() {
+    return this.o.length + this.l;
+  }
+
+  get end() {
     this.c();
     return this.l;
   }

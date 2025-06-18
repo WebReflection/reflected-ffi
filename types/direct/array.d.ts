@@ -18,6 +18,7 @@ export default class BufferedArray {
     /** @type {typeof Array.prototype.push} */
     push: typeof Array.prototype.push;
     get length(): number;
+    get end(): number;
     /**
      * commit values
      * @private
