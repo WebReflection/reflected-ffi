@@ -229,5 +229,5 @@ export const encoder = ({ byteOffset = 0 } = {}) => (value, buffer) => {
   const output = new BufferedArray(buffer, byteOffset);
   pushView = BufferedArray.push;
   inflate(value, output, new Map);
-  return output.end;
+  return output.sync(true).length;
 };

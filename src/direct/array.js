@@ -4,8 +4,7 @@ export default class BufferedArray {
    * @param {Uint8Array} value
    */
   static push(self, value) {
-    self.c();
-    self.v.set(value, self.g(value.length));
+    self.sync(false)._(value, value.length);
   }
 
   /**
@@ -19,11 +18,11 @@ export default class BufferedArray {
     /** @private length */
     this.l = 0;
 
-    /** @private view */
-    this.v = new Uint8Array(buffer, offset);
-
     /** @private output */
     this.o = output;
+
+    /** @private view */
+    this.v = new Uint8Array(buffer, offset);
 
     /** @type {typeof Array.prototype.push} */
     this.push = output.push.bind(output);
@@ -33,34 +32,30 @@ export default class BufferedArray {
     return this.o.length + this.l;
   }
 
-  get end() {
-    this.c();
-    return this.l;
-  }
-
   /**
-   * commit values
-   * @private
+   * Sync all entries in the output to the buffer.
+   * @param {boolean} end `true` if it's the last sync.
+   * @returns
    */
-  c() {
+  sync(end) {
     const output = this.o;
     const length = output.length;
-    if (length) this.v.set(output.splice(0), this.g(length));
+    if (length) this._(end ? output : output.splice(0), length);
+    return this;
   }
 
   /**
-   * grow the buffer
+   * Set a value to the buffer
    * @private
+   * @param {Uint8Array|number[]} value
    * @param {number} byteLength
-   * @returns {number}
    */
-  g(byteLength) {
+  _(value, byteLength) {
     const { buffer, byteOffset } = this.v;
-    const length = this.l;
+    const offset = this.l;
     this.l += byteLength;
-    byteLength += byteOffset + length;
-    //@ts-ignore
+    byteLength += byteOffset + offset;
     if (buffer.byteLength < byteLength) buffer.grow(byteLength);
-    return length;
+    this.v.set(value, offset);
   }
 }

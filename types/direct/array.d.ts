@@ -11,24 +11,24 @@ export default class BufferedArray {
     constructor(buffer: SharedArrayBuffer, offset: number);
     /** @private length */
     private l;
-    /** @private view */
-    private v;
     /** @private output */
     private o;
+    /** @private view */
+    private v;
     /** @type {typeof Array.prototype.push} */
     push: typeof Array.prototype.push;
     get length(): number;
-    get end(): number;
     /**
-     * commit values
-     * @private
+     * Sync all entries in the output to the buffer.
+     * @param {boolean} end `true` if it's the last sync.
+     * @returns
      */
-    private c;
+    sync(end: boolean): this;
     /**
-     * grow the buffer
+     * Set a value to the buffer
      * @private
+     * @param {Uint8Array|number[]} value
      * @param {number} byteLength
-     * @returns {number}
      */
-    private g;
+    private _;
 }
