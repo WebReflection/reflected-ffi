@@ -9,6 +9,10 @@ export class Array extends ArrayBuffer {
 
 //@ts-ignore
 export class Buffer extends Stack {
+  /**
+   * @param {ArrayBuffer} buffer
+   * @param {number} offset
+   */
   constructor(buffer, offset) {
     super(buffer, offset);
     /** @private */

@@ -3,7 +3,11 @@ export class Array extends ArrayBuffer {
     transferToFixedLength(length: any): ArrayBuffer;
 }
 export class Buffer extends Stack {
-    constructor(buffer: any, offset: any);
+    /**
+     * @param {ArrayBuffer} buffer
+     * @param {number} offset
+     */
+    constructor(buffer: ArrayBuffer, offset: number);
     /** @private */
     private e;
     sync(end: any): this;

@@ -16,6 +16,10 @@
       "types": "./types/direct/array.d.ts",
       "import": "./src/direct/array.js"
     },
+    "./buffer": {
+      "types": "./types/direct/buffer.d.ts",
+      "import": "./src/direct/buffer.js"
+    },
     "./decoder": {
       "types": "./types/direct/decoder.d.ts",
       "import": "./src/direct/decoder.js"
