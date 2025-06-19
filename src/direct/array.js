@@ -6,7 +6,8 @@ export default class Stack {
    * @param {Uint8Array} value
    */
   static push(self, value) {
-    self.sync(false)._(value, value.length);
+    self.sync(false);
+    self._(value, value.length);
   }
 
   /**
@@ -41,13 +42,11 @@ export default class Stack {
   /**
    * Sync all entries in the output to the buffer.
    * @param {boolean} last `true` if it's the last sync.
-   * @returns
    */
   sync(last) {
     const output = this.o;
     const length = output.length;
-    if (length) this._(output.splice(0), length);
-    return this;
+    if (length) this._(last ? output : output.splice(0), length);
   }
 
   /**

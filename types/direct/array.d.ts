@@ -25,9 +25,8 @@ export default class Stack {
     /**
      * Sync all entries in the output to the buffer.
      * @param {boolean} last `true` if it's the last sync.
-     * @returns
      */
-    sync(last: boolean): this;
+    sync(last: boolean): void;
     /**
      * Set a value to the buffer
      * @private

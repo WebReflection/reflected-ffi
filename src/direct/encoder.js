@@ -229,5 +229,7 @@ export const encoder = ({ byteOffset = 0, Array = Stack } = {}) => (value, buffe
   const output = new Array(buffer, byteOffset);
   pushView = Array.push;
   inflate(value, output, new Map);
-  return output.sync(true).length;
+  const length = output.length;
+  output.sync(true);
+  return length;
 };
