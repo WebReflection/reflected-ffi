@@ -19,10 +19,9 @@ export class Buffer extends Stack {
     this.e = [];
   }
 
-  sync(end) {
-    super.sync(end);
-    if (end) {
-      const entries = this.e;
+  sync(last) {
+    super.sync(last);
+    if (last) {
       //@ts-ignore
       const length = this.l;
       //@ts-ignore
@@ -30,15 +29,13 @@ export class Buffer extends Stack {
       //@ts-ignore
       const buffer = this.v.buffer.transferToFixedLength(length + offset);
       //@ts-ignore
-      this.v = new Uint8Array(buffer, offset);
-      for (let l = 0, i = 0; i < entries.length; i++) {
+      const view = new Uint8Array(buffer, offset);
+      for (let entries = this.e, l = 0, i = 0; i < entries.length; i++) {
         const data = entries[i];
         //@ts-ignore
-        this.v.set(data, l);
+        view.set(data, l);
         l += data.length;
       }
-      //@ts-ignore
-      this.o.length = 0;
     }
     return this;
   }

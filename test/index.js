@@ -5,6 +5,7 @@ import './global.js';
 import './view.js';
 import './direct.js';
 import './buffer.js';
+import './array.js';
 import './array-buffer.js';
 
 const array = [1, 2, 3];

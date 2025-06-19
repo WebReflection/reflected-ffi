@@ -40,13 +40,13 @@ export default class Stack {
 
   /**
    * Sync all entries in the output to the buffer.
-   * @param {boolean} end `true` if it's the last sync.
+   * @param {boolean} last `true` if it's the last sync.
    * @returns
    */
-  sync(end) {
+  sync(last) {
     const output = this.o;
     const length = output.length;
-    if (length) this._(end ? output : output.splice(0), length);
+    if (length) this._(output.splice(0), length);
     return this;
   }
 

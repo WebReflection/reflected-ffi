@@ -10,6 +10,6 @@ export class Buffer extends Stack {
     constructor(buffer: ArrayBuffer, offset: number);
     /** @private */
     private e;
-    sync(end: any): this;
+    sync(last: any): this;
 }
 import Stack from './array.js';

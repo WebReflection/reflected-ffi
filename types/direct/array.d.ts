@@ -24,10 +24,10 @@ export default class Stack {
     readonly get length(): number;
     /**
      * Sync all entries in the output to the buffer.
-     * @param {boolean} end `true` if it's the last sync.
+     * @param {boolean} last `true` if it's the last sync.
      * @returns
      */
-    sync(end: boolean): this;
+    sync(last: boolean): this;
     /**
      * Set a value to the buffer
      * @private
