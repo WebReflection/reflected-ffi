@@ -12,9 +12,9 @@
     "README.md"
   ],
   "exports": {
-    "./encoder": {
-      "types": "./types/direct/encoder.d.ts",
-      "import": "./src/direct/encoder.js"
+    "./array": {
+      "types": "./types/direct/array.d.ts",
+      "import": "./src/direct/array.js"
     },
     "./decoder": {
       "types": "./types/direct/decoder.d.ts",
@@ -23,6 +23,10 @@
     "./direct": {
       "types": "./types/direct/index.d.ts",
       "import": "./src/direct/index.js"
+    },
+    "./encoder": {
+      "types": "./types/direct/encoder.d.ts",
+      "import": "./src/direct/encoder.js"
     },
     "./evaluate": {
       "types": "./types/utils/evaluate.d.ts",

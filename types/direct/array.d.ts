@@ -1,14 +1,14 @@
-export default class BufferedArray {
+export default class Stack {
     /**
-     * @param {BufferedArray} self
+     * @param {Stack} self
      * @param {Uint8Array} value
      */
-    static push(self: BufferedArray, value: Uint8Array): void;
+    static push(self: Stack, value: Uint8Array): void;
     /**
-     * @param {SharedArrayBuffer} buffer
+     * @param {ArrayBufferLike} buffer
      * @param {number} offset
      */
-    constructor(buffer: SharedArrayBuffer, offset: number);
+    constructor(buffer: ArrayBufferLike, offset: number);
     /** @private length */
     private l;
     /** @private output */
@@ -17,7 +17,11 @@ export default class BufferedArray {
     private v;
     /** @type {typeof Array.prototype.push} */
     push: typeof Array.prototype.push;
-    get length(): number;
+    /**
+     * @readonly
+     * @type {number}
+     */
+    readonly get length(): number;
     /**
      * Sync all entries in the output to the buffer.
      * @param {boolean} end `true` if it's the last sync.

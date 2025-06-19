@@ -1,6 +1,8 @@
-export default class BufferedArray {
+// This is an Array facade for the encoder.
+
+export default class Stack {
   /**
-   * @param {BufferedArray} self
+   * @param {Stack} self
    * @param {Uint8Array} value
    */
   static push(self, value) {
@@ -8,7 +10,7 @@ export default class BufferedArray {
   }
 
   /**
-   * @param {SharedArrayBuffer} buffer
+   * @param {ArrayBufferLike} buffer
    * @param {number} offset
    */
   constructor(buffer, offset) {
@@ -28,8 +30,12 @@ export default class BufferedArray {
     this.push = output.push.bind(output);
   }
 
+  /**
+   * @readonly
+   * @type {number}
+   */
   get length() {
-    return this.o.length + this.l;
+    return this.l + this.o.length;
   }
 
   /**
@@ -55,7 +61,8 @@ export default class BufferedArray {
     const offset = this.l;
     this.l += byteLength;
     byteLength += byteOffset + offset;
-    if (buffer.byteLength < byteLength) buffer.grow(byteLength);
+    if (buffer.byteLength < byteLength)
+      /** @type {SharedArrayBuffer} */(buffer).grow(byteLength);
     this.v.set(value, offset);
   }
 }

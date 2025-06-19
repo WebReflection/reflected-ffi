@@ -175,7 +175,7 @@ export const decode = value => {
 
 /**
  * @param {{ byteOffset?: number }} [options]
- * @returns {(length: number, buffer: SharedArrayBuffer) => any}
+ * @returns {(length: number, buffer: ArrayBufferLike) => any}
  */
 export const decoder = ({ byteOffset = 0 } = {}) => (length, buffer) => decode(
   new Uint8Array(buffer, byteOffset, length)

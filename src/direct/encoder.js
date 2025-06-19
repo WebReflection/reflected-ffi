@@ -33,7 +33,7 @@ import {
   RECURSION,
 } from './types.js';
 
-import BufferedArray from './array.js';
+import Stack from './array.js';
 import { isArray, isView, push } from '../utils/index.js';
 import { encoder as textEncoder } from '../utils/text.js';
 import { toSymbol } from '../utils/symbol.js';
@@ -48,7 +48,7 @@ const { is } = Object;
 
 /**
  * @param {any} input
- * @param {number[]|BufferedArray} output
+ * @param {number[]|Stack} output
  * @param {Cache} cache
  * @returns {boolean}
  */
@@ -65,7 +65,7 @@ const process = (input, output, cache) => {
 };
 
 /**
- * @param {number[]|BufferedArray} output
+ * @param {number[]|Stack} output
  * @param {number} type
  * @param {number} length
  */
@@ -76,7 +76,7 @@ const set = (output, type, length) => {
 
 /**
  * @param {any} input
- * @param {number[]|BufferedArray} output
+ * @param {number[]|Stack} output
  * @param {Cache} cache
  */
 const inflate = (input, output, cache) => {
@@ -207,7 +207,7 @@ const inflate = (input, output, cache) => {
   }
 };
 
-/** @type {typeof push|typeof BufferedArray.push} */
+/** @type {typeof push|typeof Stack.push} */
 let pushView = push;
 
 /**
@@ -222,12 +222,12 @@ export const encode = value => {
 };
 
 /**
- * @param {{ byteOffset?: number }} [options]
- * @returns {(value: any, buffer: SharedArrayBuffer) => number}
+ * @param {{ byteOffset?: number, Array?: typeof Stack }} [options]
+ * @returns {(value: any, buffer: ArrayBufferLike) => number}
  */
-export const encoder = ({ byteOffset = 0 } = {}) => (value, buffer) => {
-  const output = new BufferedArray(buffer, byteOffset);
-  pushView = BufferedArray.push;
+export const encoder = ({ byteOffset = 0, Array = Stack } = {}) => (value, buffer) => {
+  const output = new Array(buffer, byteOffset);
+  pushView = Array.push;
   inflate(value, output, new Map);
   return output.sync(true).length;
 };
