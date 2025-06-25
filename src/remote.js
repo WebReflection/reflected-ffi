@@ -75,6 +75,7 @@ const { preventExtensions } = Object;
  * @property {Function} [transform=identity] The function used to transform local values into simpler references that the remote side can understand.
  * @property {Function} [released=identity] The function invoked when a reference is released.
  * @property {boolean} [buffer=false] Optionally allows direct buffer deserialization breaking JSON compatibility.
+ * @property {number} [timeout=-1] Optionally allows remote values to be cached when possible for a `timeout` milliseconds value. `-1` means no timeout.
  */
 
 /**
@@ -86,13 +87,13 @@ export default ({
   transform = identity,
   released = identity,
   buffer = false,
+  timeout = -1,
 } = object) => {
   const fromKeys = loopValues(fromKey);
   const toKeys = loopValues(toKey);
 
   // OBJECT, DIRECT, VIEW, REMOTE_ARRAY, REMOTE_OBJECT, REMOTE_FUNCTION, SYMBOL, BIGINT
-  const fromValue = value => {
-    if (!isArray(value)) return value;
+  const fromArray = value => {
     const [t, v] = value;
     if (t & REMOTE) return asProxy(value, t, v);
     switch (t) {
@@ -105,6 +106,8 @@ export default ({
       // there is no other case
     }
   };
+
+  const fromValue = value => isArray(value) ? fromArray(value) : value;
 
   const toValue = (value, cache = new Map) => {
     switch (typeof value) {
@@ -185,12 +188,75 @@ export default ({
     }
   };
 
-  class Handler {
-    constructor(_) { this._ = _ }
+  const memoize = -1 < timeout;
 
-    get(_, key) { return fromValue(reflect(GET, this._, toKey(key))) }
-    set(_, key, value) { return reflect(SET, this._, toKey(key), toValue(value)) }
-    ownKeys(_) { return fromKeys(reflect(OWN_KEYS, this._), weakRefs) }
+  class Memo extends Map {
+    static entries = [];
+
+    static keys = Symbol();
+    static proto = Symbol();
+
+    static drop(entries) {
+      const cached = entries.splice(0);
+      let i = 0;
+      while (i < cached.length)
+        cached[i++].delete(cached[i++]);
+    }
+
+    static set(self, key) {
+      const { entries } = this;
+      if (entries.push(self, key) < 3)
+        setTimeout(this.drop, timeout, entries);
+    }
+
+    drop(key, value) {
+      this.delete(key);
+      if (key !== Memo.proto) this.delete(Memo.keys);
+      return value;
+    }
+
+    set(key, value) {
+      super.set(key, value);
+      Memo.set(this, key);
+      return value;
+    }
+  }
+
+  class Handler {
+    constructor(_) {
+      this._ = _;
+      if (memoize) this.$ = new Memo;
+    }
+
+    get(_, key) {
+      if (memoize && this.$.has(key)) return this.$.get(key);
+      const value = reflect(GET, this._, toKey(key));
+      if (!memoize) return fromValue(value);
+      if (isArray(value)) {
+        let [cache, ref] = value[1];
+        value[1] = ref;
+        ref = fromArray(value);
+        return cache ? this.$.set(key, ref) : ref;
+      }
+      return this.$.set(key, value);
+    }
+    set(_, key, value) {
+      const result = reflect(SET, this._, toKey(key), toValue(value));
+      return memoize ? this.$.drop(key, result) : result;
+    }
+
+    _oK() { return fromKeys(reflect(OWN_KEYS, this._), weakRefs) }
+    ownKeys(_) {
+      return memoize ?
+        (this.$.has(Memo.keys) ?
+          this.$.get(Memo.keys) :
+          this.$.set(Memo.keys, this._oK())) :
+        this._oK()
+      ;
+    }
+
+    // this would require a cache a part per each key or make
+    // the Cache code more complex for probably little gain
     getOwnPropertyDescriptor(_, key) {
       const descriptor = fromValue(reflect(GET_OWN_PROPERTY_DESCRIPTOR, this._, toKey(key)));
       if (descriptor) {
@@ -199,14 +265,37 @@ export default ({
       }
       return descriptor;
     }
-    defineProperty(_, key, descriptor) { return reflect(DEFINE_PROPERTY, this._, toKey(key), toValue(descriptor)) }
-    deleteProperty(_, key) { return reflect(DELETE_PROPERTY, this._, toKey(key)) }
-    getPrototypeOf(_) { return fromValue(reflect(GET_PROTOTYPE_OF, this._)) }
-    setPrototypeOf(_, value) { return reflect(SET_PROTOTYPE_OF, this._, toValue(value)) }
+
+    defineProperty(_, key, descriptor) {
+      const result = reflect(DEFINE_PROPERTY, this._, toKey(key), toValue(descriptor));
+      return memoize ? this.$.drop(key, result) : result;
+    }
+
+    deleteProperty(_, key) {
+      const result = reflect(DELETE_PROPERTY, this._, toKey(key));
+      return memoize ? this.$.drop(key, result) : result;
+    }
+
+    _gPO() { return fromValue(reflect(GET_PROTOTYPE_OF, this._)) }
+    getPrototypeOf(_) {
+      return memoize ?
+        (this.$.has(Memo.proto) ?
+          this.$.get(Memo.proto) :
+          this.$.set(Memo.proto, this._gPO())) :
+        this._gPO()
+      ;
+    }
+
+    setPrototypeOf(_, value) {
+      const result = reflect(SET_PROTOTYPE_OF, this._, toValue(value));
+      return memoize ? this.$.drop(Memo.proto, result) : result;
+    }
+    // way less common than others to be cached
     isExtensible(_) { return reflect(IS_EXTENSIBLE, this._) }
     preventExtensions(target) { return preventExtensions(target) && reflect(PREVENT_EXTENSIONS, this._) }
   }
 
+  // TODO: should `in` operations be cached too?
   const has = (_, $, prop) => prop === reflected ?
     !!(reference = _) :
     reflect(HAS, $, toKey(prop))

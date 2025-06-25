@@ -1,4 +1,4 @@
-declare function _default({ reflect, transform, remote, module, buffer, }?: LocalOptions): {
+declare function _default({ reflect, transform, remote, module, buffer, timeout, }?: LocalOptions): {
     /**
      * Alows local references to be passed directly to the remote receiver,
      * either as copy or serliazied values (it depends on the implementation).
@@ -48,4 +48,8 @@ export type LocalOptions = {
      * Optionally allows direct buffer serialization breaking JSON compatibility.
      */
     buffer?: boolean;
+    /**
+     * Optionally allows remote values to be cached when possible for a `timeout` milliseconds value. `-1` means no timeout.
+     */
+    timeout?: number;
 };

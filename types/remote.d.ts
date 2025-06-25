@@ -1,4 +1,4 @@
-declare function _default({ reflect, transform, released, buffer, }?: RemoteOptions): {
+declare function _default({ reflect, transform, released, buffer, timeout, }?: RemoteOptions): {
     /**
      * The local global proxy reference.
      * @type {unknown}
@@ -71,4 +71,8 @@ export type RemoteOptions = {
      * Optionally allows direct buffer deserialization breaking JSON compatibility.
      */
     buffer?: boolean;
+    /**
+     * Optionally allows remote values to be cached when possible for a `timeout` milliseconds value. `-1` means no timeout.
+     */
+    timeout?: number;
 };

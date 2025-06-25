@@ -87,6 +87,7 @@ const {
  * @property {Function} [remote=identity] The function used to intercept remote invokes *before* these happen. Usable to sync `events` or do other tasks.
  * @property {Function} [module] The function used to import modules when remote asks to `import(...)` something.
  * @property {boolean} [buffer=false] Optionally allows direct buffer serialization breaking JSON compatibility.
+ * @property {number} [timeout=-1] Optionally allows remote values to be cached when possible for a `timeout` milliseconds value. `-1` means no timeout.
  */
 
 /**
@@ -99,6 +100,7 @@ export default ({
   remote = identity,
   module = name => import(name),
   buffer = false,
+  timeout = -1,
 } = object) => {
   // received values arrive via postMessage so are compatible
   // with the structured clone algorithm
@@ -191,6 +193,7 @@ export default ({
 
   const { clear, id, ref, unref } = heap();
 
+  const memoize = -1 < timeout;
   const weakRefs = new Map;
   const globalTarget = tv(OBJECT, null);
   const fr = new FinalizationRegistry(v => {
@@ -235,7 +238,25 @@ export default ({
       switch (method) {
         case GET: {
           const key = fromKey(args[0]);
-          return toValue(isGlobal && key === 'import' ? module : get(target, key));
+          const asModule = isGlobal && key === 'import';
+          const value = toValue(asModule ? module : get(target, key));
+          if (memoize && isArray(value)) {
+            if (!asModule && (value[0] & REMOTE)) {
+              let cache = key in target, t = target, d;
+              if (cache) {
+                while (!(d = getOwnPropertyDescriptor(t, key))) {
+                  t = getPrototypeOf(t);
+                  /* c8 ignore start */
+                  if (!t) break;
+                  /* c8 ignore stop */
+                }
+                cache = !!d && 'value' in d;
+                value[1] = [cache, value[1]];
+              }
+            }
+            else value[1] = [false, value[1]];
+          }
+          return value;
         }
         case APPLY: {
           const map = new Map;
