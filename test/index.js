@@ -10,15 +10,20 @@ import './array-buffer.js';
 
 const array = [1, 2, 3];
 
-const there = remote({
-  reflect: (...args) => here.reflect(...args),
-  transform: value => value === array ? there.direct(array) : value,
+const bootstrap = timeout => ({
+  there: remote({
+    timeout,
+    reflect: (...args) => here.reflect(...args),
+    transform: value => value === array ? there.direct(array) : value,
+  }),
+  here: local({
+    timeout,
+    reflect: (...args) => there.reflect(...args),
+    transform: value => value === array ? here.direct(array) : value,
+  })
 });
 
-const here = local({
-  reflect: (...args) => there.reflect(...args),
-  transform: value => value === array ? here.direct(array) : value,
-});
+const { there, here } = bootstrap(globalThis.timeout || -1);
 
 const { global } = there;
 
@@ -131,6 +136,14 @@ finally {
     'use strict';
     global.console.log.apply(global.console, ['test', 'completed']);
     global.console.log.apply(global.console, arguments);
+    if (!globalThis.timeout) {
+      import('node:fs').then(async ({ copyFile }) => {
+        globalThis.timeout = 1;
+        copyFile('./test/index.js', './test/index-timeout.js', () => {
+          import('./index-timeout.js');
+        });
+      });
+    }
   }, 250, { ok: true });
 }
 
