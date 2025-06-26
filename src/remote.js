@@ -67,6 +67,8 @@ import query from './utils/query.js';
 
 import heap from './utils/heap.js';
 
+import memo from './utils/memo.js';
+
 const { preventExtensions } = Object;
 
 /**
@@ -189,38 +191,9 @@ export default ({
   };
 
   const memoize = -1 < timeout;
-
-  class Memo extends Map {
-    static entries = [];
-
-    static keys = Symbol();
-    static proto = Symbol();
-
-    static drop(entries) {
-      const cached = entries.splice(0);
-      let i = 0;
-      while (i < cached.length)
-        cached[i++].delete(cached[i++]);
-    }
-
-    static set(self, key) {
-      const { entries } = this;
-      if (entries.push(self, key) < 3)
-        setTimeout(this.drop, timeout, entries);
-    }
-
-    drop(key, value) {
-      this.delete(key);
-      if (key !== Memo.proto) this.delete(Memo.keys);
-      return value;
-    }
-
-    set(key, value) {
-      super.set(key, value);
-      Memo.set(this, key);
-      return value;
-    }
-  }
+  const Memo = /** @type {typeof import('./ts/memo.js').Memo} */(
+    memoize ? memo(timeout) : Map
+  );
 
   class Handler {
     constructor(_) {
