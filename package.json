@@ -52,6 +52,10 @@
       "types": "./types/remote.d.ts",
       "import": "./src/remote.js"
     },
+    "./to-json-callback": {
+      "types": "./types/utils/to-json-callback.d.ts",
+      "import": "./src/utils/to-json-callback.js"
+    },
     "./traps": {
       "types": "./types/utils/traps.d.ts",
       "import": "./src/utils/traps.js"
