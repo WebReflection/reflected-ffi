@@ -26,7 +26,6 @@ Reflect.defineProperty(EventTarget.prototype, 'addEventListener', {
       map.set(type, [].concat(invoke));
       //@ts-ignore
       delete options.invoke;
-      console.log(map);
     }
     return addEventListener.apply(this, arguments);
   },
