@@ -241,20 +241,13 @@ export default ({
           const asModule = isGlobal && key === 'import';
           const value = toValue(asModule ? module : get(target, key));
           if (memoize && isArray(value)) {
-            if (!asModule && (value[0] & REMOTE)) {
-              let cache = key in target, t = target, d;
-              if (cache) {
-                while (!(d = getOwnPropertyDescriptor(t, key))) {
-                  t = getPrototypeOf(t);
-                  /* c8 ignore start */
-                  if (!t) break;
-                  /* c8 ignore stop */
-                }
-                cache = !!d && 'value' in d;
-                value[1] = [cache, value[1]];
-              }
+            let cache = false, t = target, d;
+            if (!asModule && (value[0] & REMOTE) && (key in target)) {
+              while (!(d = getOwnPropertyDescriptor(t, key)))
+                t = getPrototypeOf(t);
+              cache = 'value' in d;
             }
-            else value[1] = [false, value[1]];
+            value.push(cache);
           }
           return value;
         }

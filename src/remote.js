@@ -204,15 +204,19 @@ export default ({
     get(_, key) {
       if (memoize && this.$.has(key)) return this.$.get(key);
       const value = reflect(GET, this._, toKey(key));
-      if (!memoize) return fromValue(value);
-      if (isArray(value)) {
-        let [cache, ref] = value[1];
-        value[1] = ref;
-        ref = fromArray(value);
-        return cache ? this.$.set(key, ref) : ref;
-      }
-      return this.$.set(key, value);
+      return memoize ?
+        (isArray(value) ?
+          // cache it only if it wasn't an accessor
+          (value.at(-1) ?
+            this.$.set(key, fromArray(value)) :
+            fromArray(value)
+          ) :
+          this.$.set(key, value)
+        ) :
+        fromValue(value)
+      ;
     }
+
     set(_, key, value) {
       const result = reflect(SET, this._, toKey(key), toValue(value));
       return memoize ? this.$.drop(key, result) : result;
