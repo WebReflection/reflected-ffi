@@ -95,7 +95,8 @@ export default ({
   const toKeys = loopValues(toKey);
 
   // OBJECT, DIRECT, VIEW, REMOTE_ARRAY, REMOTE_OBJECT, REMOTE_FUNCTION, SYMBOL, BIGINT
-  const fromArray = value => {
+  const fromValue = value => {
+    if (!isArray(value)) return value;
     const [t, v] = value;
     if (t & REMOTE) return asProxy(value, t, v);
     switch (t) {
@@ -108,8 +109,6 @@ export default ({
       // there is no other case
     }
   };
-
-  const fromValue = value => isArray(value) ? fromArray(value) : value;
 
   const toValue = (value, cache = new Map) => {
     switch (typeof value) {
@@ -205,14 +204,9 @@ export default ({
       if (memoize && this.$.has(key)) return this.$.get(key);
       const value = reflect(GET, this._, toKey(key));
       return memoize ?
-        (isArray(value) ?
-          // cache it only if it wasn't an accessor
-          (value.at(-1) ?
-            this.$.set(key, fromArray(value)) :
-            fromArray(value)
-          ) :
-          this.$.set(key, value)
-        ) :
+        (value[0] ?
+          this.$.set(key, fromValue(value[1])) :
+          fromValue(value[1])) :
         fromValue(value)
       ;
     }

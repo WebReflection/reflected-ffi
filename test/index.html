@@ -6,7 +6,7 @@
   <script type="module">
     import './direct.js';
     import './view.js';
-    import nextResolver from 'https://esm.run/next-resolver';
+    import nextResolver from 'https://cdn.jsdelivr.net/npm/next-resolver@0.1.4/+esm';
     import local from '../src/local.js';
     import { encoder } from '../src/direct/encoder.js';
   
@@ -20,6 +20,7 @@
     const waiting = new Map;
     const w = new Worker('./worker.js', { type: 'module' });
     const { direct, reflect } = local({
+      timeout: 0,
       buffer: true,
       reflect(...args) {
         const [id, promise] = next();
