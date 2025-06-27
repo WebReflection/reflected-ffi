@@ -6,6 +6,8 @@ const i32a = new Int32Array(sab);
 const decode = decoder({ byteOffset: 8 });
 
 const { global, direct, evaluate, gather, assign, reflect } = remote({
+  timeout: 0,
+  buffer: true,
   reflect(...args) {
     postMessage([i32a, args]);
     if (args[0]) {
@@ -77,3 +79,15 @@ console.log(await global.fetch(global.location.href).then(r => r.text()));
 
 console.log(await evaluate(async (a, b) => a + b, 1, 2));
 
+console.time('not cached');
+(global.document);
+(global.document.body);
+(global.document.body.textContent);
+console.timeEnd('not cached');
+
+
+console.time('cached');
+(global.Object);
+(global.Object.prototype);
+(global.Object.prototype.toString);
+console.timeEnd('cached');

@@ -64,6 +64,8 @@ import query from './utils/query.js';
 
 import heap from './utils/heap.js';
 
+const Node = globalThis.Node || class Node {};
+
 const {
   apply,
   construct,
@@ -239,17 +241,33 @@ export default ({
         case GET: {
           const key = fromKey(args[0]);
           const asModule = isGlobal && key === 'import';
-          const value = toValue(asModule ? module : get(target, key));
-          if (memoize && isArray(value)) {
-            let cache = false, t = target, d;
-            if (!asModule && (value[0] & REMOTE) && (key in target)) {
-              while (!(d = getOwnPropertyDescriptor(t, key)))
+          const value = asModule ? module : get(target, key);
+          const result = toValue(value);
+          if (!memoize) return result;
+          let cache = asModule, t = target, d;
+          if (!asModule && !(
+            // avoid caching DOM related stuff (all accessors)
+            (t instanceof Node) ||
+            // avoid also caching Array length or index accessors
+            (isArray(t) && typeof value !== 'function')
+          )) {
+            // cache unknown properties but ...
+            if (key in target) {
+              // ... avoid caching accessors!
+              while (!(d = getOwnPropertyDescriptor(t, key))) {
                 t = getPrototypeOf(t);
-              cache = 'value' in d;
+                /* c8 ignore start */
+                if (!t) break;
+                /* c8 ignore stop */
+              }
+              cache = !!d && 'value' in d;
             }
-            value.push(cache);
+            // accessing non existent properties could be repeated
+            // for no reason whatsoever and it gets removed once
+            // the property is eventually set so ...
+            else cache = true;
           }
-          return value;
+          return [cache, result];
         }
         case APPLY: {
           const map = new Map;
