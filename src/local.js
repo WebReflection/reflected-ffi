@@ -195,6 +195,7 @@ export default ({
 
   const { clear, id, ref, unref } = heap();
 
+  const arrayKey = /^(?:[0-9]+|length)$/;
   const memoize = -1 < timeout;
   const weakRefs = new Map;
   const globalTarget = tv(OBJECT, null);
@@ -249,7 +250,7 @@ export default ({
             // avoid caching DOM related stuff (all accessors)
             (t instanceof Node) ||
             // avoid also caching Array length or index accessors
-            (isArray(t) && typeof value !== 'function')
+            (isArray(t) && typeof key === 'string' && arrayKey.test(key))
           )) {
             // cache unknown properties but ...
             if (key in target) {
@@ -257,6 +258,7 @@ export default ({
               while (!(d = getOwnPropertyDescriptor(t, key))) {
                 t = getPrototypeOf(t);
                 /* c8 ignore start */
+                // this is an emergency case for "unknown" values
                 if (!t) break;
                 /* c8 ignore stop */
               }

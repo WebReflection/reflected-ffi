@@ -36,6 +36,10 @@ console.assert(global.Array.isArray(new global.Array));
 console.assert(new global.Array instanceof global.Array);
 
 for (const _ of new global.Array(1, 2, 3));
+for (let _a = new global.Array(1, 2, 3), i = 0; i < _a.length; i++) {
+  console.assert(_a[i] === i + 1);
+  console.assert(_a.at(i) === i + 1);
+}
 
 console.assert(global.Symbol.iterator in global.Array.prototype);
 console.assert(!(Symbol.for('iterator') in global.Array.prototype));

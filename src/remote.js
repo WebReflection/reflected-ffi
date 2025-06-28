@@ -249,12 +249,14 @@ export default ({
 
     _gPO() { return fromValue(reflect(GET_PROTOTYPE_OF, this._)) }
     getPrototypeOf(_) {
+      /* c8 ignore start */
       return memoize ?
         (this.$.has(Memo.proto) ?
           this.$.get(Memo.proto) :
           this.$.set(Memo.proto, this._gPO())) :
         this._gPO()
       ;
+      /* c8 ignore stop */
     }
 
     setPrototypeOf(_, value) {
