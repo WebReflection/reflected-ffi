@@ -98,6 +98,7 @@ global.console.assert(fn(123n) === 123n);
 console.assert(ArrayBuffer.isView(new global.Int32Array([1, 2, 3])));
 console.assert((await global.import('../src/types.js')).DIRECT === 0);
 
+console.assert(here.evaluate((a, b) => a + b, 1, 2) === 3, 'direct arrow');
 console.assert(there.evaluate((a, b) => a + b, 1, 2) === 3, 'arrow');
 console.assert(there.evaluate(function test(a, b) { return a + b }, 1, 2) === 3, 'named');
 console.assert(there.evaluate({test(a, b) { return a + b }}.test, 1, 2) === 3, 'method');
@@ -116,6 +117,8 @@ let arr = new global.Array(1, 2, 3);
 fn(here.direct([arr, arr]));
 
 there.assign(global, { value: 1, array: [1, 2, 3] });
+console.assert(here.gather({ value: 1, [Symbol.for('gather')]: 2 }, 'value', Symbol.for('gather'))[0] === 1, 'direct gather[0]');
+console.assert(here.gather({ value: 1, [Symbol.for('gather')]: 2 }, 'value', Symbol.for('gather'))[1] === 2, 'direct gather[1]');
 console.assert(there.gather(global, 'value')[0] === 1);
 console.assert(there.gather(global, 'value').length === 1);
 console.assert(there.gather(global, 'value', 'array').length === 2);

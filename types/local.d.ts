@@ -1,4 +1,12 @@
 declare function _default({ reflect, transform, remote, module, buffer, timeout, }?: LocalOptions): {
+    assign: {
+        <T extends {}, U>(target: T, source: U): T & U;
+        <T extends {}, U, V>(target: T, source1: U, source2: V): T & U & V;
+        <T extends {}, U, V, W>(target: T, source1: U, source2: V, source3: W): T & U & V & W;
+        (target: object, ...sources: any[]): any;
+    };
+    gather: (target: any, ...keys: (string | symbol)[][]) => any[];
+    query: (target: any, path: string) => any;
     /**
      * Alows local references to be passed directly to the remote receiver,
      * either as copy or serliazied values (it depends on the implementation).
@@ -7,6 +15,13 @@ declare function _default({ reflect, transform, remote, module, buffer, timeout,
      * @returns {T}
      */
     direct<T extends WeakKey>(value: T): T;
+    /**
+     * Provide a portable API that just invokes the given callback with the given arguments.
+     * @param {Function} callback
+     * @param  {...any} args
+     * @returns {any}
+     */
+    evaluate: (callback: Function, ...args: any[]) => any;
     /**
      * This callback reflects locally every remote call.
      * It accepts TypeValue pairs but it always returns a string

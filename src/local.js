@@ -60,6 +60,7 @@ import {
   tv,
 } from './utils/index.js';
 
+import gather from './utils/gather.js';
 import query from './utils/query.js';
 
 import heap from './utils/heap.js';
@@ -207,6 +208,10 @@ export default ({
   let hasDirect = false, direct;
 
   return {
+    assign,
+    gather,
+    query,
+
     /**
      * Alows local references to be passed directly to the remote receiver,
      * either as copy or serliazied values (it depends on the implementation).
@@ -223,6 +228,14 @@ export default ({
       direct.add(value);
       return value;
     },
+
+    /**
+     * Provide a portable API that just invokes the given callback with the given arguments.
+     * @param {Function} callback
+     * @param  {...any} args
+     * @returns {any}
+     */
+    evaluate: (callback, ...args) => apply(callback, null, args),
 
     /**
      * This callback reflects locally every remote call.
