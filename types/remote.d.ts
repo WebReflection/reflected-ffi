@@ -1,4 +1,4 @@
-declare function _default({ reflect, transform, released, buffer, timeout, }?: RemoteOptions): {
+declare function _default({ reflect, transform, released, buffer, timeout, noSymbol, }?: RemoteOptions): {
     /**
      * The local global proxy reference.
      * @type {unknown}
@@ -75,4 +75,8 @@ export type RemoteOptions = {
      * Optionally allows remote values to be cached when possible for a `timeout` milliseconds value. `-1` means no timeout.
      */
     timeout?: number;
+    /**
+     * Optionally avoid using a symbol to track known proxies.
+     */
+    noSymbol?: boolean;
 };

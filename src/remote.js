@@ -78,6 +78,7 @@ const { preventExtensions } = Object;
  * @property {Function} [released=identity] The function invoked when a reference is released.
  * @property {boolean} [buffer=false] Optionally allows direct buffer deserialization breaking JSON compatibility.
  * @property {number} [timeout=-1] Optionally allows remote values to be cached when possible for a `timeout` milliseconds value. `-1` means no timeout.
+ * @property {boolean} [noSymbol=false] Optionally avoid using a symbol to track known proxies.
  */
 
 /**
@@ -90,7 +91,18 @@ export default ({
   released = identity,
   buffer = false,
   timeout = -1,
+  noSymbol = false,
 } = object) => {
+
+  const isKnownProxy = noSymbol ?
+    (value => {
+      const known = /** @type {WeakMap<any, any>} */(reflected).get(value);
+      if (known) reference = known;
+      return !!known;
+    }) :
+    (value => /** @type {symbol} */(reflected) in value)
+  ;
+
   const fromKeys = loopValues(fromKey);
   const toKeys = loopValues(toKey);
 
@@ -115,7 +127,7 @@ export default ({
       case 'object': {
         if (value === null) break;
         if (value === globalThis) return globalTarget;
-        if (reflected in value) return reference;
+        if (isKnownProxy(value)) return reference;
         let cached = cache.get(value);
         if (!cached) {
           const $ = transform(value);
@@ -143,7 +155,7 @@ export default ({
         return cached;
       }
       case 'function': {
-        if (reflected in value) return reference;
+        if (isKnownProxy(value)) return reference;
         let cached = cache.get(value);
         if (!cached) {
           const $ = transform(value);
@@ -184,7 +196,7 @@ export default ({
   const isProxy = value => {
     switch (typeof value) {
       case 'object': if (value === null) break;
-      case 'function': return reflected in value;
+      case 'function': return isKnownProxy(value);
       default: return false;
     }
   };
@@ -277,7 +289,10 @@ export default ({
   class ObjectHandler extends Handler {
     constructor(tv, v) {
       //@ts-ignore
-      return new Proxy({ _: tv }, super(v));
+      const proxy = new Proxy({ _: tv }, super(v));
+      if (noSymbol) /** @type {WeakMap<any, any>} */(reflected).set(proxy, tv);
+      //@ts-ignore
+      return proxy;
     }
 
     has(target, prop) { return has(target._, this._, prop) }
@@ -286,7 +301,10 @@ export default ({
   class ArrayHandler extends Handler {
     constructor(tv, v) {
       //@ts-ignore
-      return new Proxy(tv, super(v));
+      const proxy = new Proxy(tv, super(v));
+      if (noSymbol) /** @type {WeakMap<any, any>} */(reflected).set(proxy, tv);
+      //@ts-ignore
+      return proxy;
     }
 
     has(target, prop) { return has(target, this._, prop) }
@@ -295,7 +313,10 @@ export default ({
   class FunctionHandler extends Handler {
     constructor(tv, v) {
       //@ts-ignore
-      return new Proxy(asFunction.bind(tv), super(v));
+      const proxy = new Proxy(asFunction.bind(tv), super(v));
+      if (noSymbol) /** @type {WeakMap<any, any>} */(reflected).set(proxy, tv);
+      //@ts-ignore
+      return proxy;
     }
 
     has(target, prop) { return has(target(), this._, prop) }
@@ -321,7 +342,7 @@ export default ({
   const { id, ref, unref } = heap();
   const weakRefs = new Map;
   const globalTarget = tv(OBJECT, null);
-  const reflected = Symbol('reflected-ffi');
+  const reflected = noSymbol ? new WeakMap : Symbol('reflected-ffi');
   const global = new ObjectHandler(globalTarget, null);
   const fr = new FinalizationRegistry(v => {
     weakRefs.delete(v);

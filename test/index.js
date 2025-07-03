@@ -13,6 +13,7 @@ const array = [1, 2, 3];
 const bootstrap = timeout => ({
   there: remote({
     timeout,
+    noSymbol: globalThis.timeout === 1,
     reflect: (...args) => here.reflect(...args),
     transform: value => value === array ? there.direct(array) : value,
   }),
