@@ -29,6 +29,7 @@ testObject.a = 456;
 console.log(global.testArray, global.testObject);
 
 console.log(new global.Date());
+console.log('ImageData', new global.ImageData(new Uint8ClampedArray([1, 2, 3, 4]), 1, 1, { colorSpace: 'srgb' }));
 
 const { log } = global.console;
 const obj = { a: 123 };

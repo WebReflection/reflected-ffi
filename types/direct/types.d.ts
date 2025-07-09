@@ -22,4 +22,5 @@ export const OBJECT: number;
 export const REGEXP: number;
 export const SET: number;
 export const VIEW: number;
+export const IMAGE_DATA: number;
 export const RECURSION: number;

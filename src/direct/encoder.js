@@ -30,8 +30,12 @@ import {
   SET,
   VIEW,
 
+  IMAGE_DATA,
+
   RECURSION,
 } from './types.js';
+
+import { ImageData } from './web.js';
 
 import Stack from './array.js';
 import { isArray, isView, push } from '../utils/index.js';
@@ -146,6 +150,17 @@ const inflate = (input, output, cache) => {
           inflate(input.message, output, cache);
           inflate(input.stack, output, cache);
           break;
+        /* c8 ignore start */
+        case input instanceof ImageData:
+          output.push(IMAGE_DATA);
+          inflate(input.data, output, cache);
+          inflate(input.width, output, cache);
+          inflate(input.height, output, cache);
+          inflate(input.colorSpace, output, cache);
+          //@ts-ignore
+          inflate(input.pixelFormat, output, cache);
+          break;
+        /* c8 ignore stop */
         case input instanceof RegExp:
           output.push(REGEXP);
           inflate(input.source, output, cache);
