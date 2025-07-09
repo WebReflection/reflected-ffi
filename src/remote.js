@@ -318,6 +318,7 @@ export default ({
 
   let indirect = true, direct, reference;
 
+  const { apply } = Reflect;
   const { id, ref, unref } = heap();
   const weakRefs = new Map;
   const globalTarget = tv(OBJECT, null);
@@ -407,13 +408,13 @@ export default ({
      * @param  {...any} args
      * @returns
      */
-    reflect(method, uid, ...args) {
+    reflect: async (method, uid, ...args) => {
       switch (method) {
         case APPLY: {
           const [context, params] = args;
           for (let i = 0, length = params.length; i < length; i++)
             params[i] = fromValue(params[i]);
-          return toValue(Reflect.apply(ref(uid), fromValue(context), params));
+          return toValue(await apply(ref(uid), fromValue(context), params));
         }
         case UNREF: {
           released(ref(uid));

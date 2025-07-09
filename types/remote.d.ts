@@ -48,7 +48,7 @@ declare function _default({ reflect, transform, released, buffer, timeout, }?: R
      * @param  {...any} args
      * @returns
      */
-    reflect(method: number, uid: number | null, ...args: any[]): any;
+    reflect: (method: number, uid: number | null, ...args: any[]) => Promise<any>;
 };
 export default _default;
 /**

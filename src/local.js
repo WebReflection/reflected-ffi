@@ -144,9 +144,7 @@ export default ({
               args[i] = toValue(args[i]);
 
             const result = reflect(APPLY, v, toValue(this), args);
-            /* c8 ignore start */
-            return result instanceof Promise ? result.then(fromValue) : fromValue(result);
-            /* c8 ignore stop */
+            return result.then(fromValue);
           };
           wr = new WeakRef(fn);
           weakRefs.set(v, wr);
