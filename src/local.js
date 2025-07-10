@@ -38,6 +38,8 @@ import {
   REMOTE_FUNCTION,
 } from './types.js';
 
+import { ImageData } from './direct/web.js';
+
 import {
   fromSymbol,
   toSymbol,
@@ -171,7 +173,7 @@ export default ({
         if (value === null) break;
         if (value === globalThis) return globalTarget;
         const $ = transform(value);
-        return (hasDirect && direct.has($)) ?
+        return ((hasDirect && direct.has($)) || $ instanceof ImageData) ?
           tv(DIRECT, $) : (
           isView($) ?
             tv(VIEW, toView($, buffer)) : (

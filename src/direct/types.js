@@ -31,4 +31,6 @@ export const REGEXP = i++;
 export const SET = i++;
 export const VIEW = i++;
 
+export const IMAGE_DATA = i++;
+
 export const RECURSION = i++;

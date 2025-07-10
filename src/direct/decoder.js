@@ -29,8 +29,12 @@ import {
   SET,
   VIEW,
 
+  IMAGE_DATA,
+
   RECURSION
 } from './types.js';
+
+import { ImageData } from './web.js';
 
 import { decoder as textDecoder } from '../utils/text.js';
 import { defineProperty } from '../utils/index.js';
@@ -140,6 +144,17 @@ const deflate = (input, cache) => {
       const error = new Class(message);
       return $(cache, i - 1, defineProperty(error, 'stack', { value: stack }));
     }
+    /* c8 ignore start */
+    case IMAGE_DATA: {
+      const data = deflate(input, cache);
+      const width = deflate(input, cache);
+      const height = deflate(input, cache);
+      const colorSpace = deflate(input, cache);
+      const pixelFormat = deflate(input, cache);
+      const settings = { colorSpace, pixelFormat };
+      return $(cache, i - 1, new ImageData(data, width, height, settings));
+    }
+    /* c8 ignore stop */
     case REGEXP: {
       const source = deflate(input, cache);
       const flags = deflate(input, cache);
