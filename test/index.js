@@ -89,7 +89,7 @@ global.console.log(fn(Function));
 
 console.assert(there.isProxy(global.JSON));
 console.assert(there.isProxy(global.Array));
-console.assert(!there.isProxy(null));
+console.assert(there.isProxy(null) === false);
 console.assert(!there.isProxy(false));
 
 global.console.assert(fn(array) === array);

@@ -1,7 +1,7 @@
 {
   "name": "reflected-ffi",
   "type": "module",
-  "version": "0.5.9",
+  "version": "0.6.0",
   "description": "A remotely reflected Foreign Function Interface",
   "license": "MIT",
   "author": "Andrea Giammarchi",
@@ -100,7 +100,7 @@
   },
   "devDependencies": {
     "c8": "^10.1.3",
-    "typescript": "^5.8.3"
+    "typescript": "^5.9.2"
   },
   "repository": {
     "type": "git",

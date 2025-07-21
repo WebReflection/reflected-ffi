@@ -31,7 +31,6 @@ import {
   BUFFER,
 
   REMOTE_OBJECT,
-  REMOTE_ARRAY,
   REMOTE_FUNCTION
 } from './types.js';
 
@@ -165,12 +164,10 @@ export default ({
       /* c8 ignore start */
       if (wr) fr.unregister(wr);
       /* c8 ignore stop */
-      if (t === REMOTE_OBJECT)
-        proxy = new Proxy(object, new Handler(t, v));
-      else if (t === REMOTE_ARRAY)
-        proxy = new Proxy(array, new Handler(t, v));
-      else
+      if (t === REMOTE_FUNCTION)
         proxy = new Proxy(callback, new FunctionHandler(t, v));
+      else
+        proxy = new Proxy(t === REMOTE_OBJECT ? object : array, new Handler(t, v));
       wr = new WeakRef(proxy);
       weakRefs.set(v, wr);
       fr.register(proxy, v, wr);
@@ -187,8 +184,8 @@ export default ({
     switch (typeof value) {
       case 'object': if (value === null) break;
       case 'function': return reflected in value;
-      default: return false;
     }
+    return false;
   };
 
   const memoize = -1 < timeout;
@@ -277,6 +274,7 @@ export default ({
     }
     // way less common than others to be cached
     isExtensible(_) { return reflect(IS_EXTENSIBLE, this.v) }
+
     // ⚠️ due shared proxies' targets this cannot be reflected
     preventExtensions(_) { return false }
   }
