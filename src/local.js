@@ -17,7 +17,6 @@ import {
   HAS,
   IS_EXTENSIBLE,
   OWN_KEYS,
-  PREVENT_EXTENSIONS,
   SET,
   SET_PROTOTYPE_OF,
 } from './utils/traps.js';
@@ -80,7 +79,6 @@ const {
   has,
   isExtensible,
   ownKeys,
-  preventExtensions,
   set,
   setPrototypeOf,
 } = Reflect;
@@ -324,7 +322,6 @@ export default ({
         case QUERY: return toValue(query(target, args[0]));
         case UNREF: return unref(uid);
         case IS_EXTENSIBLE: return isExtensible(target);
-        case PREVENT_EXTENSIONS: return preventExtensions(target);
       }
     },
 

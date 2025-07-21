@@ -56,7 +56,7 @@ console.assert(obj.value === 'get');
 
 console.assert(Object.getPrototypeOf(obj) === global.Object.prototype);
 console.assert(Reflect.setPrototypeOf(obj, null));
-console.assert(Object.preventExtensions(obj));
+try { console.assert(Object.preventExtensions(obj)) } catch {}
 
 let fn = global.Function('a', 'return a');
 console.assert(fn(true));

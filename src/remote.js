@@ -15,7 +15,6 @@ import {
   HAS,
   IS_EXTENSIBLE,
   OWN_KEYS,
-  PREVENT_EXTENSIONS,
   SET,
   SET_PROTOTYPE_OF,
 } from './utils/traps.js';
@@ -33,6 +32,7 @@ import {
 
   REMOTE_OBJECT,
   REMOTE_ARRAY,
+  REMOTE_FUNCTION
 } from './types.js';
 
 import {
@@ -57,7 +57,9 @@ import {
   toKey,
   identity,
   loopValues,
+  array,
   object,
+  callback,
   tv,
 } from './utils/index.js';
 
@@ -68,8 +70,6 @@ import query from './utils/query.js';
 import heap from './utils/heap.js';
 
 import memo from './utils/memo.js';
-
-const { preventExtensions } = Object;
 
 /**
  * @typedef {Object} RemoteOptions Optional utilities used to orchestrate local <-> remote communication.
@@ -98,7 +98,7 @@ export default ({
   const fromValue = value => {
     if (!isArray(value)) return value;
     const [t, v] = value;
-    if (t & REMOTE) return asProxy(value, t, v);
+    if (t & REMOTE) return asProxy(t, v);
     switch (t) {
       case OBJECT: return global;
       case DIRECT: return v;
@@ -159,16 +159,18 @@ export default ({
 
   const toValues = loopValues(toValue);
 
-  const asProxy = (tv, t, v) => {
+  const asProxy = (t, v) => {
     let wr = weakRefs.get(v), proxy = wr?.deref();
     if (!proxy) {
       /* c8 ignore start */
       if (wr) fr.unregister(wr);
       /* c8 ignore stop */
-      proxy = new (
-        t === REMOTE_OBJECT ? ObjectHandler :
-        (t === REMOTE_ARRAY ? ArrayHandler : FunctionHandler)
-      )(tv, v);
+      if (t === REMOTE_OBJECT)
+        proxy = new Proxy(object, new Handler(t, v));
+      else if (t === REMOTE_ARRAY)
+        proxy = new Proxy(array, new Handler(t, v));
+      else
+        proxy = new Proxy(callback, new FunctionHandler(t, v));
       wr = new WeakRef(proxy);
       weakRefs.set(v, wr);
       fr.register(proxy, v, wr);
@@ -195,14 +197,15 @@ export default ({
   );
 
   class Handler {
-    constructor(_) {
-      this._ = _;
+    constructor(t, v) {
+      this.t = t;
+      this.v = v;
       if (memoize) this.$ = new Memo;
     }
 
     get(_, key) {
       if (memoize && this.$.has(key)) return this.$.get(key);
-      const value = reflect(GET, this._, toKey(key));
+      const value = reflect(GET, this.v, toKey(key));
       return memoize ?
         (value[0] ?
           this.$.set(key, fromValue(value[1])) :
@@ -212,11 +215,20 @@ export default ({
     }
 
     set(_, key, value) {
-      const result = reflect(SET, this._, toKey(key), toValue(value));
+      const result = reflect(SET, this.v, toKey(key), toValue(value));
       return memoize ? this.$.drop(key, result) : result;
     }
 
-    _oK() { return fromKeys(reflect(OWN_KEYS, this._), weakRefs) }
+    // TODO: should `in` operations be cached too?
+    has(_, prop) {
+      if (prop === reflected) {
+        reference = [this.t, this.v];
+        return true;
+      }
+      return reflect(HAS, this.v, toKey(prop));
+    }
+
+    _oK() { return fromKeys(reflect(OWN_KEYS, this.v), weakRefs) }
     ownKeys(_) {
       return memoize ?
         (this.$.has(Memo.keys) ?
@@ -229,7 +241,7 @@ export default ({
     // this would require a cache a part per each key or make
     // the Cache code more complex for probably little gain
     getOwnPropertyDescriptor(_, key) {
-      const descriptor = fromValue(reflect(GET_OWN_PROPERTY_DESCRIPTOR, this._, toKey(key)));
+      const descriptor = fromValue(reflect(GET_OWN_PROPERTY_DESCRIPTOR, this.v, toKey(key)));
       if (descriptor) {
         for (const k in descriptor)
           descriptor[k] = fromValue(descriptor[k]);
@@ -238,16 +250,16 @@ export default ({
     }
 
     defineProperty(_, key, descriptor) {
-      const result = reflect(DEFINE_PROPERTY, this._, toKey(key), toValue(descriptor));
+      const result = reflect(DEFINE_PROPERTY, this.v, toKey(key), toValue(descriptor));
       return memoize ? this.$.drop(key, result) : result;
     }
 
     deleteProperty(_, key) {
-      const result = reflect(DELETE_PROPERTY, this._, toKey(key));
+      const result = reflect(DELETE_PROPERTY, this.v, toKey(key));
       return memoize ? this.$.drop(key, result) : result;
     }
 
-    _gPO() { return fromValue(reflect(GET_PROTOTYPE_OF, this._)) }
+    _gPO() { return fromValue(reflect(GET_PROTOTYPE_OF, this.v)) }
     getPrototypeOf(_) {
       /* c8 ignore start */
       return memoize ?
@@ -260,50 +272,21 @@ export default ({
     }
 
     setPrototypeOf(_, value) {
-      const result = reflect(SET_PROTOTYPE_OF, this._, toValue(value));
+      const result = reflect(SET_PROTOTYPE_OF, this.v, toValue(value));
       return memoize ? this.$.drop(Memo.proto, result) : result;
     }
     // way less common than others to be cached
-    isExtensible(_) { return reflect(IS_EXTENSIBLE, this._) }
-    preventExtensions(target) { return preventExtensions(target) && reflect(PREVENT_EXTENSIONS, this._) }
-  }
-
-  // TODO: should `in` operations be cached too?
-  const has = (_, $, prop) => prop === reflected ?
-    !!(reference = _) :
-    reflect(HAS, $, toKey(prop))
-  ;
-
-  class ObjectHandler extends Handler {
-    constructor(tv, v) {
-      //@ts-ignore
-      return new Proxy({ _: tv }, super(v));
-    }
-
-    has(target, prop) { return has(target._, this._, prop) }
-  }
-
-  class ArrayHandler extends Handler {
-    constructor(tv, v) {
-      //@ts-ignore
-      return new Proxy(tv, super(v));
-    }
-
-    has(target, prop) { return has(target, this._, prop) }
+    isExtensible(_) { return reflect(IS_EXTENSIBLE, this.v) }
+    // ⚠️ due shared proxies' targets this cannot be reflected
+    preventExtensions(_) { return false }
   }
 
   class FunctionHandler extends Handler {
-    constructor(tv, v) {
-      //@ts-ignore
-      return new Proxy(asFunction.bind(tv), super(v));
-    }
-
-    has(target, prop) { return has(target(), this._, prop) }
-    construct(_, args) { return fromValue(reflect(CONSTRUCT, this._, toValues(args))) }
+    construct(_, args) { return fromValue(reflect(CONSTRUCT, this.v, toValues(args))) }
 
     apply(_, self, args) {
       const map = new Map;
-      return fromValue(reflect(APPLY, this._, toValue(self, map), toValues(args, map)));
+      return fromValue(reflect(APPLY, this.v, toValue(self, map), toValues(args, map)));
     }
 
     get(_, key) {
@@ -321,9 +304,9 @@ export default ({
   const { apply } = Reflect;
   const { id, ref, unref } = heap();
   const weakRefs = new Map;
-  const globalTarget = tv(OBJECT, null);
   const reflected = Symbol('reflected-ffi');
-  const global = new ObjectHandler(globalTarget, null);
+  const globalTarget = tv(OBJECT, null);
+  const global = new Proxy(object, new Handler(OBJECT, null));
   const fr = new FinalizationRegistry(v => {
     weakRefs.delete(v);
     reflect(UNREF, v);
@@ -424,7 +407,3 @@ export default ({
     },
   };
 };
-
-function asFunction() {
-  return this;
-}
