@@ -185,8 +185,8 @@ export default ({
     switch (typeof value) {
       case 'object': if (value === null) break;
       case 'function': return reflected in value;
-      default: return false;
     }
+    return false;
   };
 
   const memoize = -1 < timeout;
