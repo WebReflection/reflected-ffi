@@ -30,7 +30,12 @@ export const tv = (type, value) => [type, value];
 
 export const identity = value => value;
 
+export const array = [];
 export const object = {};
+
+/* c8 ignore start */
+export const callback = function () {};
+/* c8 ignore stop */
 
 /**
  * Create a function that loops through an array and applies a function to each value.
