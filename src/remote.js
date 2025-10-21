@@ -131,9 +131,9 @@ export default ({
               const o = {};
               cached = tv(OBJECT, o);
               cache.set(value, cached);
-              // the try/catch guards against WebAssembly opaque objects:
-              // https://github.com/pyodide/pyodide/issues/5929#issuecomment-3377201964
-              try { for (const _ in $) break; } catch { return cached }
+              // // the try/catch guards against WebAssembly opaque objects:
+              // // https://github.com/pyodide/pyodide/issues/5929#issuecomment-3377201964
+              // try { for (const _ in $) break; } catch { return cached }
               for (const k in $) o[k] = toValue($[k], cache);
               return cached;
             }
