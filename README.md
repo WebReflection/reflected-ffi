@@ -264,3 +264,36 @@ const body = query(global, 'document.body');
 Please note there is no evaluation in here, the provided path is simply traversed and it supports indexes and braces notation so that `Array["isArray"]["length"]` would work the same and `namespace.reference[0].value` would work as well.
 
 </details>
+
+## Encoder / Decoder
+
+This module exports both `encoder` and `decoder` utilities, compatible with these kind of entries:
+
+| kind | async |
+| :--- | :---: |
+| File | ✅   |
+| Blob | ✅   |
+| ImageData | |
+| View | |
+| ArrayBuffer | |
+| Array | |
+| Object | |
+| Date | |
+| Error | |
+| Map | |
+| Set | |
+| RegExp | |
+| boolean | |
+| symbol | |
+| bigint | |
+| number | |
+| string | |
+| +0 / -0 | |
+| +Infinity / -Infinity | |
+| NaN | |
+| null | |
+| undefined | |
+
+When it comes to serialize entries that requires asynchronous interaction, the `encoder` returned function returns a `Promise<number>` as `length` as opposite of just `number`.
+
+As the encoding usually happens on the side of affairs where things can be done asynchronously, you can either check if the `typeof` is number or `await encode(value, buffer)` instead and be done with it.

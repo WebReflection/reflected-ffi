@@ -30,6 +30,8 @@ import {
   VIEW,
 
   IMAGE_DATA,
+  BLOB,
+  FILE,
 
   RECURSION
 } from './types.js';
@@ -172,6 +174,18 @@ const deflate = (input, cache) => {
     case BIGUINT: return (number(input), dv.getBigUint64(0, true));
     case SYMBOL: return fromSymbol(deflate(input, cache));
     case RECURSION: return cache.get(size(input));
+    case BLOB: {
+      const type = deflate(input, cache);
+      const size = deflate(input, cache);
+      return $(cache, i - 1, new Blob([input.slice(i, i += size)], { type }));
+    }
+    case FILE: {
+      const index = i - 1;
+      const name = deflate(input, cache);
+      const lastModified = deflate(input, cache);
+      const blob = deflate(input, cache);
+      return $(cache, index, new File([blob], name, { type: blob.type, lastModified }));
+    }
     // this covers functions too
     default: return undefined;
   }

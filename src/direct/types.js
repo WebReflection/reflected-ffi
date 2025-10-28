@@ -32,5 +32,7 @@ export const SET = i++;
 export const VIEW = i++;
 
 export const IMAGE_DATA = i++;
+export const BLOB = i++;
+export const FILE = i++;
 
 export const RECURSION = i++;

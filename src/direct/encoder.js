@@ -31,6 +31,8 @@ import {
   VIEW,
 
   IMAGE_DATA,
+  BLOB,
+  FILE,
 
   RECURSION,
 } from './types.js';
@@ -166,6 +168,23 @@ const inflate = (input, output, cache) => {
           inflate(input.source, output, cache);
           inflate(input.flags, output, cache);
           break;
+        case input instanceof File: {
+          output.push(FILE);
+          inflate(input.name, output, cache);
+          inflate(input.lastModified, output, cache);
+          // fallthrough
+        }
+        case input instanceof Blob: {
+          const size = input.size;
+          output.push(BLOB);
+          inflate(input.type, output, cache);
+          inflate(size, output, cache);
+          const length = output.length;
+          //@ts-ignore
+          pushView(output, new Uint8Array(size));
+          blobs.push(input.arrayBuffer().then(buffer => [length, buffer]));
+          break;
+        }
         default: {
           if ('toJSON' in input) {
             const json = input.toJSON();
@@ -222,6 +241,8 @@ const inflate = (input, output, cache) => {
   }
 };
 
+const blobs = [];
+
 /** @type {typeof push|typeof Stack.push} */
 let pushView = push;
 
@@ -238,7 +259,7 @@ export const encode = value => {
 
 /**
  * @param {{ byteOffset?: number, Array?: typeof Stack }} [options]
- * @returns {(value: any, buffer: ArrayBufferLike) => number}
+ * @returns {(value: any, buffer: ArrayBufferLike) => number | Promise<number>}
  */
 export const encoder = ({ byteOffset = 0, Array = Stack } = {}) => (value, buffer) => {
   const output = new Array(buffer, byteOffset);
@@ -246,5 +267,12 @@ export const encoder = ({ byteOffset = 0, Array = Stack } = {}) => (value, buffe
   inflate(value, output, new Map);
   const length = output.length;
   output.sync(true);
-  return length;
+  return blobs.length ?
+    Promise.all(blobs.splice(0)).then(entries => {
+      const ui8a = new Uint8Array(buffer, byteOffset);
+      for (const [len, buff] of entries)
+        ui8a.set(new Uint8Array(buff), len);
+      return length;
+    }) :
+    length;
 };

@@ -7,6 +7,7 @@ import './direct.js';
 import './buffer.js';
 import './array.js';
 import './array-buffer.js';
+import './blob.js';
 
 const array = [1, 2, 3];
 

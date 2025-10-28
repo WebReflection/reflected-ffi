@@ -23,4 +23,6 @@ export const REGEXP: number;
 export const SET: number;
 export const VIEW: number;
 export const IMAGE_DATA: number;
+export const BLOB: number;
+export const FILE: number;
 export const RECURSION: number;
