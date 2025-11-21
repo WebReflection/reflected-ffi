@@ -1,7 +1,7 @@
 import re
 from datetime import datetime, timezone
 
-from .js import Map, Null, Set, Symbol, symbols
+from .js import Blob, File, Map, Null, Set, Symbol, symbols
 from .types import FALSE, TRUE, NULL, NUMBER, UI8, NAN, INFINITY, N_INFINITY, ZERO, N_ZERO, BIGINT, BIGUINT, STRING, SYMBOL, ARRAY, BUFFER, DATE, ERROR, MAP, OBJECT, REGEXP, SET, VIEW, IMAGE_DATA, BLOB, FILE, RECURSION
 from .views import dv, u8a8
 
@@ -162,6 +162,19 @@ def deflate(input, cache):
 
   if c == RECURSION: return cache.get(size(input))
 
+  if c == BLOB:
+    index = i - 1
+    type = deflate(input, cache)
+    size = deflate(input, cache)
+    return _(cache, index, Blob(input[i:i+size], { 'type': type, 'size': size }))
+
+  if c == FILE:
+    index = i - 1
+    name = deflate(input, cache)
+    lastModified = deflate(input, cache)
+    blob = deflate(input, cache)
+    return _(cache, index, File(blob.getvalue(), name, { 'type': blob.type, 'lastModified': lastModified }))
+
   if c == SYMBOL:
     return symbols[Symbol(deflate(input, cache))]
 
@@ -173,4 +186,4 @@ def decode(input):
   return deflate(input, {})
 
 def decoder(byteOffset = 0):
-  return lambda length, buffer: decode(memoryview(buffer[byteOffset:byteOffset+length]))
+  return lambda length, buffer: decode(memoryview(buffer)[byteOffset:byteOffset+length])
