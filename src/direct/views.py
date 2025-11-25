@@ -8,6 +8,7 @@ def endianness(littleEndian):
 
 # MicroPython fallback
 as_number = lambda num: int(num) if num.is_integer() else num
+as_integer = lambda num: num.is_integer()
 try:
   float(0).is_integer()
 except:
@@ -36,6 +37,26 @@ class DataView:
   def getUint32(self, byteOffset, littleEndian):
     bo = endianness(littleEndian)
     return int.from_bytes(self.buffer[byteOffset:byteOffset+4], byteorder=bo)
+
+  def setBigInt64(self, byteOffset, value, littleEndian):
+    return self.setBigUint64(byteOffset, value, littleEndian)
+
+  def setBigUint64(self, byteOffset, value, littleEndian):
+    bo = endianness(littleEndian)
+    bytes = value.to_bytes(8, byteorder=bo)
+    for i in range(8):
+      self.buffer[byteOffset+i] = bytes[i]
+
+  def setUint32(self, byteOffset, value, littleEndian):
+    bo = endianness(littleEndian)
+    bytes = value.to_bytes(4, byteorder=bo)
+    for i in range(4):
+      self.buffer[byteOffset+i] = bytes[i]
+
+  def setFloat64(self, byteOffset, value, littleEndian):
+    bytes = struct.pack('<d' if littleEndian else '>d', value)
+    for i in range(8):
+      self.buffer[byteOffset+i] = bytes[i]
 
 u8a8 = [0] * 8
 dv = DataView(u8a8)

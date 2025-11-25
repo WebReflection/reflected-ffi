@@ -41,4 +41,7 @@ IMAGE_DATA = next()
 BLOB = next()
 FILE = next()
 
+FOREIGN_ARRAY = next()
+FOREIGN_SET = next()
+
 RECURSION = next()

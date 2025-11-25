@@ -33,15 +33,21 @@ import {
   BLOB,
   FILE,
 
+  FOREIGN_ARRAY,
+  FOREIGN_SET,
+
   RECURSION
 } from './types.js';
 
 import { ImageData } from './web.js';
+import { ForeignArray, ForeignSet } from './foreign.js';
 
 import { decoder as textDecoder } from '../utils/text.js';
 import { defineProperty } from '../utils/index.js';
 import { fromSymbol } from '../utils/symbol.js';
 import { dv, u8a8 } from './views.js';
+
+let foreign = false;
 
 /** @typedef {Map<number, any>} Cache */
 
@@ -100,8 +106,11 @@ const deflate = (input, cache) => {
         object[deflate(input, cache)] = deflate(input, cache);
       return object;
     }
+    case FOREIGN_ARRAY:
+      foreign = true;
     case ARRAY: {
-      const array = $(cache, i - 1, []);
+      const array = $(cache, i - 1, foreign ? new ForeignArray : []);
+      foreign = false;
       for (let j = 0, length = size(input); j < length; j++)
         array.push(deflate(input, cache));
       return array;
@@ -132,8 +141,11 @@ const deflate = (input, cache) => {
         map.set(deflate(input, cache), deflate(input, cache));
       return map;
     }
+    case FOREIGN_SET:
+      foreign = true;
     case SET: {
-      const set = $(cache, i - 1, new Set);
+      const set = $(cache, i - 1, foreign ? new ForeignSet : new Set);
+      foreign = false;
       for (let j = 0, length = size(input); j < length; j++)
         set.add(deflate(input, cache));
       return set;

@@ -25,4 +25,6 @@ export const VIEW: number;
 export const IMAGE_DATA: number;
 export const BLOB: number;
 export const FILE: number;
+export const FOREIGN_ARRAY: number;
+export const FOREIGN_SET: number;
 export const RECURSION: number;
