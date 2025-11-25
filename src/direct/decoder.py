@@ -2,7 +2,7 @@ import re
 from datetime import datetime, timezone
 
 from .js import Blob, File, Map, Null, Set, Symbol, symbols
-from .types import FALSE, TRUE, NULL, NUMBER, UI8, NAN, INFINITY, N_INFINITY, ZERO, N_ZERO, BIGINT, BIGUINT, STRING, SYMBOL, ARRAY, BUFFER, DATE, ERROR, MAP, OBJECT, REGEXP, SET, VIEW, IMAGE_DATA, BLOB, FILE, RECURSION
+from .types import FALSE, TRUE, NULL, NUMBER, UI8, NAN, INFINITY, N_INFINITY, ZERO, N_ZERO, BIGINT, BIGUINT, STRING, SYMBOL, ARRAY, BUFFER, DATE, ERROR, MAP, OBJECT, REGEXP, SET, VIEW, IMAGE_DATA, BLOB, FILE, FOREIGN_ARRAY, FOREIGN_SET, RECURSION
 from .views import dv, u8a8
 
 i = 0
@@ -56,6 +56,17 @@ def deflate(input, cache):
       j += 1
     return object
 
+  if c == FOREIGN_ARRAY:
+    index = i - 1
+    array = _(cache, index, [])
+    j = 0
+    length = size(input)
+    while j < length:
+      array.append(deflate(input, cache))
+      j += 1
+    cache[index] = tuple(array)
+    return cache[index];
+
   if c == ARRAY:
     array = _(cache, i - 1, [])
     j = 0
@@ -95,6 +106,12 @@ def deflate(input, cache):
       key = deflate(input, cache)
       m[key] = deflate(input, cache)
     return m
+
+  if c == FOREIGN_SET:
+    s = _(cache, i - 1, set())
+    for j in range(size(input)):
+      s.add(deflate(input, cache))
+    return s
 
   if c == SET:
     s = _(cache, i - 1, Set())
@@ -164,9 +181,9 @@ def deflate(input, cache):
 
   if c == BLOB:
     index = i - 1
-    type = deflate(input, cache)
-    size = deflate(input, cache)
-    return _(cache, index, Blob(input[i:i+size], { 'type': type, 'size': size }))
+    t = deflate(input, cache)
+    s = deflate(input, cache)
+    return _(cache, index, Blob(input[i:i+s], { 'type': t, 'size': s }))
 
   if c == FILE:
     index = i - 1
