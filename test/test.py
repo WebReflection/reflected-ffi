@@ -1,4 +1,12 @@
-from direct import Symbol, symbols, Null, decode, decoder, encode, encoder
+import re
+from datetime import datetime
+
+import os, sys
+sys.path.append(os.path.realpath(os.path.join(os.path.dirname(__file__), '..')))
+from src.direct import Symbol, symbols, Blob, Null, decode, decoder, encode, encoder
+
+from src import local
+local()
 
 if Null: print('Null is True')
 if Null is None: print('Null is None')
@@ -24,9 +32,9 @@ e = encoder(byteOffset)
 #print(d(len(b), b))
 
 val = b'abc'
-l, r, = e(['Uint8Array', memoryview(val), memoryview(val), memoryview(val), 'Uint8Array'])
+l, r, = e(re.compile('', re.I))
 _ = d(l, r)
-print(l, r, ' -> ', _, type(_))
+print(l, r, ' -> ', _, type(_), f'pattern: {_.pattern} - flags: {_.flags}')
 
 # decoded = d(len(b), b)
 

@@ -225,3 +225,5 @@ export const decode = value => {
 export const decoder = ({ byteOffset = 0 } = {}) => (length, buffer) => decode(
   new Uint8Array(buffer, byteOffset, length)
 );
+
+export * from './foreign.js';

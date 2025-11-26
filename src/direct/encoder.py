@@ -1,13 +1,18 @@
-import struct
+import io, re, struct
 from datetime import datetime, timezone
 
-from .js import Blob, File, Map, Null, Set, Symbol
-from .types import FALSE, TRUE, NULL, UNDEFINED, NUMBER, UI8, NAN, INFINITY, N_INFINITY, ZERO, N_ZERO, BIGINT, BIGUINT, STRING, SYMBOL, ARRAY, BUFFER, DATE, ERROR, MAP, OBJECT, REGEXP, SET, VIEW, IMAGE_DATA, BLOB, FILE, FOREIGN_ARRAY, FOREIGN_SET, RECURSION
+from .js import Blob, File, Map, Null, Set, Symbol, NaN
+from .types import POSITIVE_INFINITY, NEGATIVE_INFINITY, FALSE, TRUE, NULL, UNDEFINED, NUMBER, UI8, NAN, INFINITY, N_INFINITY, ZERO, N_ZERO, BIGINT, BIGUINT, STRING, SYMBOL, ARRAY, BUFFER, DATE, ERROR, MAP, OBJECT, REGEXP, SET, VIEW, IMAGE_DATA, BLOB, FILE, FOREIGN_ARRAY, FOREIGN_SET, RECURSION
 from .views import dv, u8a8
 
-inf = float('inf')
-ninf = float('-inf')
-nan = float('nan')
+__all__ = ["encode", "encoder"]
+
+# TODO: MicroPython does not expose pattern and/or flags
+try:
+  re.Pattern
+  with_regexp = True
+except:
+  with_regexp = False
 
 class Cache:
   def __init__(self):
@@ -37,12 +42,11 @@ def append_object(type, input, output, cache):
     inflate(value, output, cache)
 
 def process(input, output, cache):
-  try:
-    index = cache.i.index(input)
+  if input in cache.i:
     output.append(RECURSION)
-    output.extend(cache.v[index])
+    output.extend(cache.v[cache.i.index(input)])
     return False
-  except:
+  else:
     dv.setUint32(0, len(output), True)
     cache.i.append(input)
     cache.v.append(u8a8[0:4])
@@ -78,11 +82,11 @@ def inflate(input, output, cache):
       output.extend(u8a8)
 
   elif isinstance(input, float):
-    if input == inf:
+    if input == POSITIVE_INFINITY:
       output.append(INFINITY)
-    elif input == ninf:
+    elif input == NEGATIVE_INFINITY:
       output.append(N_INFINITY)
-    elif input == nan:
+    elif input == NaN:
       output.append(NAN)
     else:
       if not input:
@@ -130,6 +134,57 @@ def inflate(input, output, cache):
     elif isinstance(input, (bytes, bytearray)):
       append(output, BUFFER, len(input))
       output.extend(input)
+    
+    elif isinstance(input, datetime):
+      output.append(DATE)
+      input = input.replace(tzinfo=timezone.utc)
+      inflate(int(input.timestamp() * 1000), output, cache)
+
+    elif isinstance(input, io.BytesIO):
+      value = input.getvalue()
+      if isinstance(input, File):
+        output.append(FILE)
+        inflate(input.name, output, cache);
+        inflate(input.lastModified, output, cache)
+
+      output.append(BLOB)
+      if isinstance(input, Blob):
+        inflate(input.type, output, cache)
+        inflate(input.size, output, cache)
+      else:
+        inflate('', output, cache)
+        inflate(len(value), output, cache)
+      output.extend(value)
+
+    elif isinstance(input, Exception):
+      output.append(ERROR)
+      inflate(str(input.__class__.__name__), output, cache)
+      inflate(input.args[0], output, cache)
+      s = ''
+      if len(input.args) > 1:
+        details = input.args[1]
+        if isinstance(details, str):
+          s = details
+        elif isinstance(details, dict):
+          s = details.get('stack', '')
+      inflate(s, output, cache)
+
+    elif with_regexp and isinstance(input, re.Pattern):
+      output.append(REGEXP)
+      inflate(input.pattern, output, cache)
+      flags = ''
+      if input.flags & re.I:
+        flags += 'i'
+      if input.flags & re.M:
+        flags += 'm'
+      if input.flags & re.S:
+        flags += 's'
+      if input.flags & re.U:
+        flags += 'u'
+      inflate(flags, output, cache)
+
+    else:
+      raise ValueError(f'Unsupported type: {type(input)}')
 
 def encode(value):
   output = bytearray()

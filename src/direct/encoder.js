@@ -280,3 +280,5 @@ export const encoder = ({ byteOffset = 0, Array = Stack } = {}) => (value, buffe
     }) :
     length;
 };
+
+export * from './foreign.js';
