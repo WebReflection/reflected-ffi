@@ -9,6 +9,11 @@ inf = float('inf')
 ninf = float('-inf')
 nan = float('nan')
 
+class Cache:
+  def __init__(self):
+    self.i = []
+    self.v = []
+
 def append(output, type, length):
   dv.setUint32(0, length, True)
   output.append(type)
@@ -30,6 +35,18 @@ def append_object(type, input, output, cache):
   for key, value in items:
     inflate(key, output, cache)
     inflate(value, output, cache)
+
+def process(input, output, cache):
+  try:
+    index = cache.i.index(input)
+    output.append(RECURSION)
+    output.extend(cache.v[index])
+    return False
+  except:
+    dv.setUint32(0, len(output), True)
+    cache.i.append(input)
+    cache.v.append(u8a8[0:4])
+    return True
 
 def inflate(input, output, cache):
   if input is None:
@@ -75,45 +92,48 @@ def inflate(input, output, cache):
         dv.setFloat64(0, input, True)
         output.extend(u8a8)
 
-  elif isinstance(input, str):
-    utf8 = input.encode('utf-8')
-    append(output, STRING, len(utf8))
-    output.extend(utf8)
-
-  elif isinstance(input, Set):
-    append_set(SET, input, output, cache)
-
-  elif isinstance(input, Map):
-    append_object(MAP, input, output, cache)
-
-  elif isinstance(input, set):
-    append_set(FOREIGN_SET, input, output, cache)
-
-  elif isinstance(input, list):
-    append_array(ARRAY, input, output, cache)
-
-  elif isinstance(input, tuple):
-    append_array(FOREIGN_ARRAY, input, output, cache)
-
-  elif isinstance(input, dict):
-    append_object(OBJECT, input, output, cache)
-
-  elif isinstance(input, (bytes, bytearray)):
-    append(output, BUFFER, len(input))
-    output.extend(input)
-
-  elif isinstance(input, memoryview):
-    output.append(VIEW)
-    inflate('Uint8Array', output, cache)
-    inflate(bytes(input), output, cache)
-
   elif isinstance(input, Symbol):
     output.append(SYMBOL)
     inflate(str(input), output, cache)
 
+  elif process(input, output, cache):
+    if isinstance(input, str):
+      utf8 = input.encode('utf-8')
+      append(output, STRING, len(utf8))
+      output.extend(utf8)
+
+    elif isinstance(input, Set):
+      append_set(SET, input, output, cache)
+
+    elif isinstance(input, Map):
+      append_object(MAP, input, output, cache)
+
+    elif isinstance(input, set):
+      append_set(FOREIGN_SET, input, output, cache)
+
+    elif isinstance(input, tuple):
+      append_array(FOREIGN_ARRAY, input, output, cache)
+
+    elif isinstance(input, list):
+      append_array(ARRAY, input, output, cache)
+
+    elif isinstance(input, dict):
+      append_object(OBJECT, input, output, cache)
+
+    elif isinstance(input, memoryview):
+      output.append(VIEW)
+      inflate('Uint8Array', output, cache)
+      # TODO: shared bytearray here causes issues in cache
+      append(output, BUFFER, len(input))
+      output.extend(input)
+
+    elif isinstance(input, (bytes, bytearray)):
+      append(output, BUFFER, len(input))
+      output.extend(input)
+
 def encode(value):
   output = bytearray()
-  inflate(value, output, {})
+  inflate(value, output, Cache())
   return output
 
 def encoder(byteOffset = 0):

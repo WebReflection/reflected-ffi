@@ -14,16 +14,17 @@ byteOffset = 0
 d = decoder(byteOffset)
 e = encoder(byteOffset)
 
-b = bytes(([0] * byteOffset) + [
-   15, 3, 0, 0, 0,   5,   1,  21,
-   13, 3, 0, 0, 0,  97, 115, 100,
-   13, 4, 0, 0, 0, 105, 109, 115,
-  117, 5, 3
-])
+# b = bytes(([0] * byteOffset) + [
+#    15, 3, 0, 0, 0,   5,   1,  21,
+#    13, 3, 0, 0, 0,  97, 115, 100,
+#    13, 4, 0, 0, 0, 105, 109, 115,
+#   117, 5, 3
+# ])
 
-print(d(len(b), b))
+#print(d(len(b), b))
 
-l, r, = e(memoryview(b'abc'))
+val = b'abc'
+l, r, = e(['Uint8Array', memoryview(val), memoryview(val), memoryview(val), 'Uint8Array'])
 _ = d(l, r)
 print(l, r, ' -> ', _, type(_))
 
