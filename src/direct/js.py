@@ -1,6 +1,10 @@
 import io
 from datetime import datetime
 
+__all__ = ["Blob", "File", "Map", "NaN", "Null", "Set", "Symbol", "symbols"]
+
+NaN = float('nan')
+
 def now():
   return int(datetime.now().timestamp() * 1000)
 
@@ -32,37 +36,35 @@ class Set(list):
     if value not in self:
       self.append(value)
 
+
+class Blob(io.BytesIO):
+  type = ''
+  size = 0
+
+  def __init__(self, buffer, options=None):
+    if options is None or options is Null:
+      options = {}
+
+    super().__init__(buffer)
+    self.type = options.get('type', '')
+    self.size = options.get('size', len(buffer))
+
+
+class File(Blob):
+  name = ''
+  lastModified = 0
+
+  def __init__(self, buffer, name, options=None):
+    if options is None or options is Null:
+      options = {}
+
+    super().__init__(buffer, options)
+    self.name = name
+    self.lastModified = options.get('lastModified', now())
+
 # C-Python compatibility
 try:
   str().__new__
-
-  class Blob(io.BytesIO):
-    type = ''
-    size = 0
-
-    def __new__(cls, buffer, options=None):
-      if options is None or options is Null:
-        options = {}
-
-      this = str.__new__(cls, buffer)
-      this.stype = options.get('type', '')
-      this.size = options.get('size', len(buffer))
-      return this
-
-
-  class File(Blob):
-    name = ''
-    lastModified = 0
-
-    def __new__(cls, buffer, name, options=None):
-      if options is None or options is Null:
-        options = {}
-
-      this = super().__new__(cls, buffer, options)
-      this.name = name
-      this.lastModified = options.get('lastModified', now())
-      return this
-
 
   class Symbol(str):
     def __new__(cls, name):
@@ -70,41 +72,12 @@ try:
 
 # MicroPython compatibility
 except:
-  class Blob(io.BytesIO):
-    type = ''
-    size = 0
-  
-    def __init__(self, buffer, options=None):
-      if options is None or options is Null:
-        options = {}
-
-      super().__init__(buffer)
-      self.type = options.get('type', '')
-      self.size = options.get('size', len(buffer))
-
-
-  class File(Blob):
-    name = ''
-    lastModified = 0
-
-    def __init__(self, buffer, name, options=None):
-      if options is None or options is Null:
-        options = {}
-
-      super().__init__(buffer, options)
-      self.name = name
-      self.lastModified = options.get('lastModified', now())
-
-
   class Symbol(str):
     def __init__(self, name):
       super().__init__(f'Symbol[{len(name)}].{name}')
-
 
 symbols = {}
 
 for _ in ["asyncIterator", "hasInstance", "isConcatSpreadable", "iterator", "match", "matchAll", "replace", "search", "species", "split", "toPrimitive", "toStringTag", "unscopables", "dispose", "asyncDispose"]:
   symbol = Symbol(f'@{_}')
   symbols[symbol] = symbol
-
-del _

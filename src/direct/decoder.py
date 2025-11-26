@@ -1,9 +1,11 @@
 import re
 from datetime import datetime, timezone
 
-from .js import Blob, File, Map, Null, Set, Symbol, symbols
-from .types import FALSE, TRUE, NULL, NUMBER, UI8, NAN, INFINITY, N_INFINITY, ZERO, N_ZERO, BIGINT, BIGUINT, STRING, SYMBOL, ARRAY, BUFFER, DATE, ERROR, MAP, OBJECT, REGEXP, SET, VIEW, IMAGE_DATA, BLOB, FILE, FOREIGN_ARRAY, FOREIGN_SET, RECURSION
+from .js import Blob, File, Map, Null, Set, Symbol, NaN, symbols
+from .types import POSITIVE_INFINITY, NEGATIVE_INFINITY, FALSE, TRUE, NULL, NUMBER, UI8, NAN, INFINITY, N_INFINITY, ZERO, N_ZERO, BIGINT, BIGUINT, STRING, SYMBOL, ARRAY, BUFFER, DATE, ERROR, MAP, OBJECT, REGEXP, SET, VIEW, IMAGE_DATA, BLOB, FILE, FOREIGN_ARRAY, FOREIGN_SET, RECURSION
 from .views import dv, u8a8
+
+__all__ = ["decode", "decoder"]
 
 i = 0
 
@@ -93,7 +95,7 @@ def deflate(input, cache):
     length = size(input)
     start = i
     i += length
-    return _(cache, index, bytes(input[start:i]).decode('utf-8', errors='strict'))
+    return _(cache, index, bytes(input[start:i]).decode('utf-8'))
 
   if c == DATE:
     index = i - 1
@@ -132,7 +134,7 @@ def deflate(input, cache):
     flags = deflate(input, cache)
 
     # ⚠️ not all JS flags are supported by Python (and vice-versa)
-    # C-Python compatibility
+    # C-Python compatibility - also re.U is there by default
     try:
       pflags = 0
       for c in flags:
@@ -157,11 +159,11 @@ def deflate(input, cache):
 
   if c == TRUE: return True
 
-  if c == NAN: return float('nan')
+  if c == NAN: return NaN
 
-  if c == INFINITY: return float('inf')
+  if c == INFINITY: return POSITIVE_INFINITY
 
-  if c == N_INFINITY: return float('-inf')
+  if c == N_INFINITY: return NEGATIVE_INFINITY
 
   if c == ZERO: return 0
 

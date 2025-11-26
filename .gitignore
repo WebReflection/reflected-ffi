@@ -3,7 +3,9 @@
 v8.log
 coverage/
 dist/
+env/
 node_modules/
 __pycache__/
 coincident-*
 test/index-timeout.js
+reflected_ffi/

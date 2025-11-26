@@ -45,3 +45,6 @@ FOREIGN_ARRAY = next()
 FOREIGN_SET = next()
 
 RECURSION = next()
+
+POSITIVE_INFINITY = float('inf')
+NEGATIVE_INFINITY = float('-inf')
