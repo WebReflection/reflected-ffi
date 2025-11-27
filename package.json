@@ -92,7 +92,7 @@
   },
   "scripts": {
     "build": "npm run no-debug && npm run types",
-    "build:py": "rm -rf ./pypi && rm -rf ./wheel && mkdir -p ./wheel/reflected_ffi/direct && mkdir -p ./wheel/reflected_ffi/utils && cp ./src/*.py ./wheel/reflected_ffi/ && cp ./src/direct/*.py ./wheel/reflected_ffi/direct/ && cp ./src/utils/*.py ./wheel/reflected_ffi/utils/ && cp ./setup.py ./wheel/ && cd wheel && python setup.py bdist_wheel && sleep 1 && cd .. && mv wheel/dist ./pypi && rm -rf ./wheel",
+    "build:py": "rm -rf ./pypi && rm -rf ./wheel && mkdir -p ./wheel/reflected_ffi/direct && mkdir -p ./wheel/reflected_ffi/utils && cp ./src/*.py ./wheel/reflected_ffi/ && cp ./src/direct/*.py ./wheel/reflected_ffi/direct/ && cp ./src/utils/*.py ./wheel/reflected_ffi/utils/ && cp ./setup.py ./wheel/ && cd wheel && python setup.py bdist_wheel && sleep 1 && cd .. && mv wheel/dist ./pypi && mv wheel/*.egg-info ./pypi && rm -rf wheel",
     "coverage": "mkdir -p ./coverage; c8 report --reporter=text-lcov > ./coverage/lcov.info",
     "debug": "echo 'export default true;' > ./src/utils/debug.js",
     "no-debug": "echo 'export default false;' > ./src/utils/debug.js",
