@@ -4,6 +4,16 @@ from datetime import datetime
 import os, sys
 sys.path.append(os.path.realpath(os.path.join(os.path.dirname(__file__), '..')))
 from src.direct import Symbol, symbols, Blob, Null, decode, decoder, encode, encoder
+from src.direct.js import FinalizationRegistry
+
+if FinalizationRegistry.WEAKREF:
+  fr = FinalizationRegistry(lambda v: print('finalizing', v))
+  import weakref
+  o = lambda *a, **k: print('lambda', a, k)
+  wr = weakref.ref(o)
+  fr.register(o, 'o', wr)
+  # fr.unregister(wr)
+  del o
 
 from src import local
 local()

@@ -13,3 +13,5 @@ reflected_ffi/direct/js.py
 reflected_ffi/direct/types.py
 reflected_ffi/direct/views.py
 reflected_ffi/utils/__init__.py
+reflected_ffi/utils/traps.py
+reflected_ffi/utils/typed.py

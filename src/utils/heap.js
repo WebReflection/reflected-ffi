@@ -7,6 +7,8 @@
  * @property {(id:number) => boolean} unref
  */
 
+const integers = new Int32Array(1);
+
 /**
  * Create a heap-like utility to hold references in memory.
  * @param {number} [id=0] The initial `id` which is `0` by default.
@@ -14,24 +16,27 @@
  * @param {Map<any, number>} [refs=new Map] The used map of references to ids.
  * @returns {Heap<any>}
  */
-export default (id = 0, ids = new Map, refs = new Map) => ({
-  clear: () => {
-    ids.clear();
-    refs.clear();
-  },
-  id: ref => {
-    let uid = refs.get(ref);
-    if (uid === void 0) {
-      /* c8 ignore next */
-      while (ids.has(uid = id++));
-      ids.set(uid, ref);
-      refs.set(ref, uid);
-    }
-    return uid;
-  },
-  ref: id => ids.get(id),
-  unref: id => {
-    refs.delete(ids.get(id));
-    return ids.delete(id);
-  },
-});
+export default (id = 0, ids = new Map, refs = new Map) => {
+  integers[0] = id;
+  return {
+    clear: () => {
+      ids.clear();
+      refs.clear();
+    },
+    id: ref => {
+      let uid = refs.get(ref);
+      if (uid === void 0) {
+        /* c8 ignore next */
+        while (ids.has(uid = integers[0]++));
+        ids.set(uid, ref);
+        refs.set(ref, uid);
+      }
+      return uid;
+    },
+    ref: id => ids.get(id),
+    unref: id => {
+      refs.delete(ids.get(id));
+      return ids.delete(id);
+    },
+  };
+};
