@@ -71,3 +71,7 @@ echo '<!DOCTYPE html>
 
 
 ' > pypi/index.html
+
+# TODO: this is needed only in coincident
+unzip -o ./pypi/reflected_ffi-0.0.1-py3-none-any.whl -d ./pypi/
+cp -R ./pypi/reflected_ffi ~/git/coincident/src/server/
