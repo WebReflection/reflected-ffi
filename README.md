@@ -133,14 +133,15 @@ const { direct, reflect, terminate } = local({
 });
 
 remote.onmessage = ({ data: [i32a, [trap, ...rest]] }) => {
-  // retrieve the result
-  const result = reflect(trap, ...rest);
-
   // ignore `unref` (its value is `0`) as it doesn't need Atomics
   if (!trap) return;
 
+  // retrieve the result
+  const result = reflect(trap, ...rest);
+
   // store it into the SharedArrayBuffer + set written length
-  i32a[1] = encode(reflect(...args), i32a.buffer);
+  i32a[1] = encode(result, i32a.buffer);
+
   // notify at index 0 it's all good
   i32a[0] = 1;
   Atomics.notify(i32a, 0);
