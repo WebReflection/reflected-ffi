@@ -35,4 +35,7 @@ export const IMAGE_DATA = i++;
 export const BLOB = i++;
 export const FILE = i++;
 
+export const FOREIGN_ARRAY = i++;
+export const FOREIGN_SET = i++;
+
 export const RECURSION = i++;

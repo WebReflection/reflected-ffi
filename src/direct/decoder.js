@@ -33,15 +33,21 @@ import {
   BLOB,
   FILE,
 
+  FOREIGN_ARRAY,
+  FOREIGN_SET,
+
   RECURSION
 } from './types.js';
 
 import { ImageData } from './web.js';
+import { ForeignArray, ForeignSet } from './foreign.js';
 
 import { decoder as textDecoder } from '../utils/text.js';
 import { defineProperty } from '../utils/index.js';
 import { fromSymbol } from '../utils/symbol.js';
 import { dv, u8a8 } from './views.js';
+
+let foreign = false;
 
 /** @typedef {Map<number, any>} Cache */
 
@@ -100,8 +106,11 @@ const deflate = (input, cache) => {
         object[deflate(input, cache)] = deflate(input, cache);
       return object;
     }
+    case FOREIGN_ARRAY:
+      foreign = true;
     case ARRAY: {
-      const array = $(cache, i - 1, []);
+      const array = $(cache, i - 1, foreign ? new ForeignArray : []);
+      foreign = false;
       for (let j = 0, length = size(input); j < length; j++)
         array.push(deflate(input, cache));
       return array;
@@ -132,35 +141,41 @@ const deflate = (input, cache) => {
         map.set(deflate(input, cache), deflate(input, cache));
       return map;
     }
+    case FOREIGN_SET:
+      foreign = true;
     case SET: {
-      const set = $(cache, i - 1, new Set);
+      const set = $(cache, i - 1, foreign ? new ForeignSet : new Set);
+      foreign = false;
       for (let j = 0, length = size(input); j < length; j++)
         set.add(deflate(input, cache));
       return set;
     }
     case ERROR: {
+      const index = i - 1;
       const name = deflate(input, cache);
       const message = deflate(input, cache);
       const stack = deflate(input, cache);
       const Class = globalThis[name] || Error;
       const error = new Class(message);
-      return $(cache, i - 1, defineProperty(error, 'stack', { value: stack }));
+      return $(cache, index, defineProperty(error, 'stack', { value: stack }));
     }
     /* c8 ignore start */
     case IMAGE_DATA: {
+      const index = i - 1;
       const data = deflate(input, cache);
       const width = deflate(input, cache);
       const height = deflate(input, cache);
       const colorSpace = deflate(input, cache);
       const pixelFormat = deflate(input, cache);
       const settings = { colorSpace, pixelFormat };
-      return $(cache, i - 1, new ImageData(data, width, height, settings));
+      return $(cache, index, new ImageData(data, width, height, settings));
     }
     /* c8 ignore stop */
     case REGEXP: {
+      const index = i - 1;
       const source = deflate(input, cache);
       const flags = deflate(input, cache);
-      return $(cache, i - 1, new RegExp(source, flags));
+      return $(cache, index, new RegExp(source, flags));
     }
     case FALSE: return false;
     case TRUE: return true;
@@ -175,9 +190,10 @@ const deflate = (input, cache) => {
     case SYMBOL: return fromSymbol(deflate(input, cache));
     case RECURSION: return cache.get(size(input));
     case BLOB: {
+      const index = i - 1;
       const type = deflate(input, cache);
       const size = deflate(input, cache);
-      return $(cache, i - 1, new Blob([input.slice(i, i += size)], { type }));
+      return $(cache, index, new Blob([input.slice(i, i += size)], { type }));
     }
     case FILE: {
       const index = i - 1;
@@ -209,3 +225,5 @@ export const decode = value => {
 export const decoder = ({ byteOffset = 0 } = {}) => (length, buffer) => decode(
   new Uint8Array(buffer, byteOffset, length)
 );
+
+export * from './foreign.js';
