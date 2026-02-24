@@ -32,7 +32,6 @@ export default class Stack {
   }
 
   /**
-   * @readonly
    * @type {number}
    */
   get length() {
