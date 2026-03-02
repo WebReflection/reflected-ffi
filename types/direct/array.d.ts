@@ -18,10 +18,9 @@ export default class Stack {
     /** @type {typeof Array.prototype.push} */
     push: typeof Array.prototype.push;
     /**
-     * @readonly
      * @type {number}
      */
-    readonly get length(): number;
+    get length(): number;
     /**
      * Sync all entries in the output to the buffer.
      * @param {boolean} last `true` if it's the last sync.

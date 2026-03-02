@@ -139,28 +139,31 @@ const deflate = (input, cache) => {
       return set;
     }
     case ERROR: {
+      const index = i - 1;
       const name = deflate(input, cache);
       const message = deflate(input, cache);
       const stack = deflate(input, cache);
       const Class = globalThis[name] || Error;
       const error = new Class(message);
-      return $(cache, i - 1, defineProperty(error, 'stack', { value: stack }));
+      return $(cache, index, defineProperty(error, 'stack', { value: stack }));
     }
     /* c8 ignore start */
     case IMAGE_DATA: {
+      const index = i - 1;
       const data = deflate(input, cache);
       const width = deflate(input, cache);
       const height = deflate(input, cache);
       const colorSpace = deflate(input, cache);
       const pixelFormat = deflate(input, cache);
       const settings = { colorSpace, pixelFormat };
-      return $(cache, i - 1, new ImageData(data, width, height, settings));
+      return $(cache, index, new ImageData(data, width, height, settings));
     }
     /* c8 ignore stop */
     case REGEXP: {
+      const index = i - 1;
       const source = deflate(input, cache);
       const flags = deflate(input, cache);
-      return $(cache, i - 1, new RegExp(source, flags));
+      return $(cache, index, new RegExp(source, flags));
     }
     case FALSE: return false;
     case TRUE: return true;
@@ -175,9 +178,10 @@ const deflate = (input, cache) => {
     case SYMBOL: return fromSymbol(deflate(input, cache));
     case RECURSION: return cache.get(size(input));
     case BLOB: {
+      const index = i - 1;
       const type = deflate(input, cache);
       const size = deflate(input, cache);
-      return $(cache, i - 1, new Blob([input.slice(i, i += size)], { type }));
+      return $(cache, index, new Blob([input.slice(i, i += size)], { type }));
     }
     case FILE: {
       const index = i - 1;

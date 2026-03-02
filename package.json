@@ -99,7 +99,7 @@
     "types": "tsc --allowJs --checkJs --lib dom,esnext --module esnext --target esnext -d --emitDeclarationOnly --outDir ./types ./src/*.js ./src/*/*.js"
   },
   "devDependencies": {
-    "c8": "^10.1.3",
+    "c8": "^11.0.0",
     "typescript": "^5.9.3"
   },
   "repository": {
