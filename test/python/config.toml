@@ -1,0 +1,7 @@
+debug = true
+
+[files]
+"../../python/__init__.py" = "/reflected_ffi/__init__.py"
+"../../python/types.py" = "/reflected_ffi/types.py"
+"../../python/local.py" = "/reflected_ffi/local.py"
+"../../python/remote.py" = "/reflected_ffi/remote.py"
