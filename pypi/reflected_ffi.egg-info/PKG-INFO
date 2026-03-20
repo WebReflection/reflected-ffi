@@ -1,7 +1,0 @@
-Metadata-Version: 2.4
-Name: reflected_ffi
-Version: 0.0.1
-Summary: A remotely reflected Foreign Function Interface
-Author: Andrea Giammarchi
-Dynamic: author
-Dynamic: summary
