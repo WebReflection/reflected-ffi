@@ -34,14 +34,10 @@ import {
   BLOB,
   FILE,
 
-  FOREIGN_ARRAY,
-  FOREIGN_SET,
-
   RECURSION,
 } from './types.js';
 
 import { ImageData } from './web.js';
-import { ForeignArray, ForeignSet } from './foreign.js';
 
 import Stack from './array.js';
 import { isArray, isView, push } from '../utils/index.js';
@@ -113,7 +109,7 @@ const inflate = (input, output, cache) => {
         case !process(input, output, cache): break;
         case isArray(input): {
           const length = input.length;
-          set(output, input instanceof ForeignArray ? FOREIGN_ARRAY : ARRAY, length);
+          set(output, ARRAY, length);
           for (let i = 0; i < length; i++)
             inflate(input[i], output, cache);
           break;
@@ -145,7 +141,7 @@ const inflate = (input, output, cache) => {
           break;
         }
         case input instanceof Set: {
-          set(output, input instanceof ForeignSet ? FOREIGN_SET : SET, input.size);
+          set(output, SET, input.size);
           for (const value of input)
             inflate(value, output, cache);
           break;
@@ -280,5 +276,3 @@ export const encoder = ({ byteOffset = 0, Array = Stack } = {}) => (value, buffe
     }) :
     length;
 };
-
-export * from './foreign.js';

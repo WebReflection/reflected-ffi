@@ -8,7 +8,7 @@
 python -m venv env
 source env/bin/activate
 pip install --upgrade pip
-pip install setuptools wheel
+pip install setuptools wheel twine
 
 echo '
 import os
