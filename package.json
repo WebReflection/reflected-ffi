@@ -92,11 +92,12 @@
   },
   "scripts": {
     "build": "npm run no-debug && npm run types",
+    "build:py": "rm -rf ./pypi && rm -rf ./wheel && mkdir -p ./wheel/reflected_ffi && cp ./python/*.py ./wheel/reflected_ffi/ && cp ./setup.py ./wheel/ && cd wheel && python setup.py bdist_wheel && sleep 1 && cd .. && mv wheel/dist ./pypi && rm -rf wheel",
     "coverage": "mkdir -p ./coverage; c8 report --reporter=text-lcov > ./coverage/lcov.info",
     "debug": "echo 'export default true;' > ./src/utils/debug.js",
     "no-debug": "echo 'export default false;' > ./src/utils/debug.js",
     "test": "npm run no-debug && c8 node --expose-gc test/index.js",
-    "types": "tsc --allowJs --checkJs --lib dom,esnext --module esnext --target esnext -d --emitDeclarationOnly --outDir ./types ./src/*.js ./src/*/*.js"
+    "types": "tsc --allowJs --checkJs --lib dom,esnext --module NodeNext --moduleResolution NodeNext --target esnext -d --emitDeclarationOnly --outDir ./types ./src/*.js ./src/*/*.js"
   },
   "devDependencies": {
     "c8": "^11.0.0",
@@ -115,5 +116,8 @@
   "bugs": {
     "url": "https://github.com/WebReflection/reflected-ffi/issues"
   },
-  "homepage": "https://github.com/WebReflection/reflected-ffi#readme"
+  "homepage": "https://github.com/WebReflection/reflected-ffi#readme",
+  "dependencies": {
+    "weak-id": "^0.2.1"
+  }
 }

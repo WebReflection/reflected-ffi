@@ -1,3 +1,5 @@
+import i32 from 'weak-id/i32';
+
 /**
  * @template T
  * @typedef {Object} Heap
@@ -14,24 +16,27 @@
  * @param {Map<any, number>} [refs=new Map] The used map of references to ids.
  * @returns {Heap<any>}
  */
-export default (id = 0, ids = new Map, refs = new Map) => ({
-  clear: () => {
-    ids.clear();
-    refs.clear();
-  },
-  id: ref => {
-    let uid = refs.get(ref);
-    if (uid === void 0) {
-      /* c8 ignore next */
-      while (ids.has(uid = id++));
-      ids.set(uid, ref);
-      refs.set(ref, uid);
-    }
-    return uid;
-  },
-  ref: id => ids.get(id),
-  unref: id => {
-    refs.delete(ids.get(id));
-    return ids.delete(id);
-  },
-});
+export default (id = 0, ids = new Map, refs = new Map) => {
+  const next = i32(id);
+  return {
+    clear: () => {
+      ids.clear();
+      refs.clear();
+    },
+    id: ref => {
+      let uid = refs.get(ref);
+      if (uid === void 0) {
+        /* c8 ignore next */
+        while (ids.has(uid = next()));
+        ids.set(uid, ref);
+        refs.set(ref, uid);
+      }
+      return uid;
+    },
+    ref: id => ids.get(id),
+    unref: id => {
+      refs.delete(ids.get(id));
+      return ids.delete(id);
+    },
+  };
+};
