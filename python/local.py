@@ -1,6 +1,7 @@
 def reflected(reflect=lambda id, trap, args=[], kwargs=None: print("reflect", id, trap, args, kwargs)):
     import builtins
     from builtins import isinstance as _isinstance
+    from importlib import import_module
 
     from .types import DIRECT, REMOTE, ERROR, FUNCTION
 
@@ -136,6 +137,9 @@ def reflected(reflect=lambda id, trap, args=[], kwargs=None: print("reflect", id
                         return True
 
                     return False
+
+                if trap == "__import__":
+                    return to_value(import_module(args[0]))
 
             except Exception as e:
                 return to_value(e)

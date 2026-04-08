@@ -135,6 +135,7 @@ def reflected(reflect=lambda id, trap, args=[], kwargs=None: print("reflect", id
         def __init__(self):
             self.Handler = Handler
             self.builtins = Handler(None)
+            self.__import__ = lambda name: reflect(None, "__import__", [name])
 
         def reflect(self, id, trap, args=[], kwargs=None):
             if trap == "__call__":
