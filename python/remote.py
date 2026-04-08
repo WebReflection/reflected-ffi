@@ -131,11 +131,16 @@ def reflected(reflect=lambda id, trap, args=[], kwargs=None: print("reflect", id
         def __len__(self):
             return reflect(self._, "__len__")
 
+    # This is due MicroPython (?) shenanigan around referring to a known class thing
+    _reflect = reflect
+
     class Reflected:
         def __init__(self):
             self.Handler = Handler
             self.builtins = Handler(None)
-            self.__import__ = lambda name: reflect(None, "__import__", [name])
+
+        def __import__(self, name):
+            return from_value(_reflect(None, "__import__", [name]))
 
         def reflect(self, id, trap, args=[], kwargs=None):
             if trap == "__call__":
